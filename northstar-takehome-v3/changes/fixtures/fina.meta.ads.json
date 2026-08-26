@@ -1,0 +1,18 @@
+[
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-01", "date_start": "2026-08-01T02:00:00Z", "spend": "620.00", "currency": "PHP", "impressions": 9100, "clicks": 210},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-02", "date_start": "2026-08-02T02:00:00Z", "spend": "580.00", "currency": "PHP", "impressions": 8700, "clicks": 190},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-03", "date_start": "2026-08-03T02:00:00Z", "spend": "700.00", "currency": "PHP", "impressions": 10200, "clicks": 240},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-04", "date_start": "2026-08-04T02:00:00Z", "spend": "650.00", "currency": "PHP", "impressions": 9600, "clicks": 220},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-05", "date_start": "2026-08-05T02:00:00Z", "spend": "610.00", "currency": "PHP", "impressions": 9000, "clicks": 205},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-06", "date_start": "2026-08-06T02:00:00Z", "spend": "720.00", "currency": "PHP", "impressions": 10500, "clicks": 250},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-07", "date_start": "2026-08-06T17:00:00Z", "spend": "690.00", "currency": "PHP", "impressions": 10100, "clicks": 235},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-08", "date_start": "2026-08-08T02:00:00Z", "spend": "560.00", "currency": "PHP", "impressions": 8300, "clicks": 180},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-09", "date_start": "2026-08-09T02:00:00Z", "spend": "640.00", "currency": "PHP", "impressions": 9400, "clicks": 215},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-09", "date_start": "2026-08-09T02:00:00Z", "spend": "-250.00", "currency": "PHP", "impressions": 0, "clicks": 0},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-10", "date_start": "2026-08-10T02:00:00Z", "spend": "600.00", "currency": "PHP", "impressions": 8900, "clicks": 200},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-11", "date_start": "2026-08-11T02:00:00Z", "spend": "660.00", "currency": "PHP", "impressions": 9700, "clicks": 225},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-11", "date_start": "2026-08-11T02:00:00Z", "spend": "660.00", "currency": "PHP", "impressions": 9700, "clicks": 225},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-12", "date_start": "2026-08-12T02:00:00Z", "spend": "590.00", "currency": "PHP", "impressions": 8600, "clicks": 195},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-13", "date_start": "2026-08-13T02:00:00Z", "spend": "710.00", "currency": "PHP", "impressions": 10300, "clicks": 245},
+  {"campaign_id": "F-C1", "campaign_name": "Fina Always-On", "date": "2026-08-14", "date_start": "2026-08-14T02:00:00Z", "spend": "630.00", "currency": "PHP", "impressions": 9200, "clicks": 210}
+]

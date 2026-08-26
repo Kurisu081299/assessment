@@ -1,0 +1,152 @@
+[
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-01",
+    "date_start": "2026-08-01T16:10:00Z",
+    "spend": "44.00",
+    "currency": "USD",
+    "impressions": 12840,
+    "clicks": 312
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-02",
+    "date_start": "2026-08-02T17:02:00Z",
+    "spend": "51.20",
+    "currency": "USD",
+    "impressions": 14102,
+    "clicks": 355
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-03",
+    "date_start": "2026-08-03T15:40:00Z",
+    "spend": "48.75",
+    "currency": "USD",
+    "impressions": 13210,
+    "clicks": 298
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-05",
+    "date_start": "2026-08-05T06:00:00Z",
+    "spend": "61.00",
+    "currency": "USD",
+    "impressions": 15660,
+    "clicks": 401
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-05",
+    "date_start": "2026-08-05T18:22:00Z",
+    "spend": "67.40",
+    "currency": "USD",
+    "impressions": 17110,
+    "clicks": 422
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-06",
+    "date_start": "2026-08-06T16:05:00Z",
+    "spend": "55.10",
+    "currency": "USD",
+    "impressions": 14980,
+    "clicks": 367
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-07",
+    "date_start": "2026-08-07T17:48:00Z",
+    "spend": "62.00",
+    "currency": "USD",
+    "impressions": 16002,
+    "clicks": 389
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-08",
+    "date_start": "2026-08-08T15:11:00Z",
+    "spend": "41.80",
+    "currency": "USD",
+    "impressions": 11890,
+    "clicks": 241
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-09",
+    "date_start": "2026-08-09T16:33:00Z",
+    "spend": "39.50",
+    "currency": "USD",
+    "impressions": 10940,
+    "clicks": 198
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-10",
+    "date_start": "2026-08-10T17:01:00Z",
+    "spend": "58.25",
+    "currency": "USD",
+    "impressions": 15440,
+    "clicks": 376
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-11",
+    "date_start": "2026-08-11T18:40:00Z",
+    "spend": "70.00",
+    "currency": "USD",
+    "impressions": 18220,
+    "clicks": 451
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-12",
+    "date_start": "2026-08-12T16:18:00Z",
+    "spend": "46.60",
+    "currency": "USD",
+    "impressions": 12670,
+    "clicks": 288
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-13",
+    "date_start": "2026-08-13T15:55:00Z",
+    "spend": "53.90",
+    "currency": "USD",
+    "impressions": 13990,
+    "clicks": 341
+  },
+  {
+    "campaign_id": "L-C1",
+    "campaign_name": "Lumen Evergreen \u2014 Prospecting",
+    "date": "2026-08-14",
+    "date_start": "2026-08-14T17:27:00Z",
+    "spend": "49.15",
+    "currency": "USD",
+    "impressions": 13110,
+    "clicks": 309
+  },
+  {
+    "campaign_id": "L-C2",
+    "campaign_name": "Lumen Launch \u2014 Hoodie",
+    "date": "2026-08-05",
+    "date_start": "2026-08-05T19:05:00Z",
+    "spend": "22.50",
+    "currency": "USD",
+    "impressions": 6400,
+    "clicks": 155
+  }
+]

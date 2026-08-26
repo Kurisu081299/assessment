@@ -1,0 +1,152 @@
+[
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-01",
+    "date_start": "2026-08-01T02:20:00Z",
+    "spend": "72.00",
+    "currency": "AUD",
+    "impressions": 9800,
+    "clicks": 210
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-02",
+    "date_start": "2026-08-02T03:05:00Z",
+    "spend": "68.50",
+    "currency": "AUD",
+    "impressions": 9100,
+    "clicks": 188
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-03",
+    "date_start": "2026-08-03T01:48:00Z",
+    "spend": "81.00",
+    "currency": "AUD",
+    "impressions": 11240,
+    "clicks": 241
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-04",
+    "date_start": "2026-08-04T04:11:00Z",
+    "spend": "77.25",
+    "currency": "AUD",
+    "impressions": 10450,
+    "clicks": 226
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-05",
+    "date_start": "2026-08-05T02:33:00Z",
+    "spend": "66.40",
+    "currency": "AUD",
+    "impressions": 8740,
+    "clicks": 175
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-06",
+    "date_start": "2026-08-06T03:40:00Z",
+    "spend": "84.10",
+    "currency": "AUD",
+    "impressions": 12100,
+    "clicks": 268
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-07",
+    "date_start": "2026-08-07T01:15:00Z",
+    "spend": "79.00",
+    "currency": "AUD",
+    "impressions": 10880,
+    "clicks": 233
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-08",
+    "date_start": "2026-08-08T05:02:00Z",
+    "spend": "71.80",
+    "currency": "AUD",
+    "impressions": 9600,
+    "clicks": 201
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-09",
+    "date_start": "2026-08-09T03:28:00Z",
+    "spend": "90.00",
+    "currency": "AUD",
+    "impressions": 13420,
+    "clicks": 290
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-10",
+    "date_start": "2026-08-10T02:55:00Z",
+    "spend": "75.55",
+    "currency": "AUD",
+    "impressions": 10110,
+    "clicks": 219
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-11",
+    "date_start": "2026-08-11T04:44:00Z",
+    "spend": "88.20",
+    "currency": "AUD",
+    "impressions": 12890,
+    "clicks": 277
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-12",
+    "date_start": "2026-08-12T01:09:00Z",
+    "spend": "69.00",
+    "currency": "AUD",
+    "impressions": 9050,
+    "clicks": 184
+  },
+  {
+    "campaign_id": "H-C9",
+    "campaign_name": "Harbor US retarget (wrong account)",
+    "date": "2026-08-12",
+    "date_start": "2026-08-12T06:30:00Z",
+    "spend": "25.00",
+    "currency": "USD",
+    "impressions": 4200,
+    "clicks": 96
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-13",
+    "date_start": "2026-08-13T03:17:00Z",
+    "spend": "73.30",
+    "currency": "AUD",
+    "impressions": 9920,
+    "clicks": 207
+  },
+  {
+    "campaign_id": "H-C1",
+    "campaign_name": "Harbor AU \u2014 Prospecting",
+    "date": "2026-08-14",
+    "date_start": "2026-08-14T02:41:00Z",
+    "spend": "80.00",
+    "currency": "AUD",
+    "impressions": 11050,
+    "clicks": 238
+  }
+]

@@ -1,0 +1,354 @@
+[
+  {
+    "id": "L-1001",
+    "name": "#L-1001",
+    "created_at": "2026-08-01T10:15:22-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "96.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 2,
+        "price": "48.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1002",
+    "name": "#L-1002",
+    "created_at": "2026-08-02T14:22:08-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "86.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      },
+      {
+        "sku": "LM-TEE-WHT",
+        "title": "Lumen Tee \u2014 White",
+        "quantity": 1,
+        "price": "48.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1003",
+    "name": "#L-1003",
+    "created_at": "2026-08-03T09:05:41-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "192.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "128.00"
+      },
+      {
+        "sku": "LM-KIT",
+        "title": "Lumen Starter Kit",
+        "quantity": 1,
+        "price": "64.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1003-R",
+    "name": "#L-1003-R",
+    "created_at": "2026-08-04T15:41:03-07:00",
+    "currency": "USD",
+    "financial_status": "refunded",
+    "total_price": "192.00",
+    "total_refunded": "192.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "128.00"
+      },
+      {
+        "sku": "LM-KIT",
+        "title": "Lumen Starter Kit",
+        "quantity": 1,
+        "price": "64.00"
+      }
+    ],
+    "refund_of": "L-1003"
+  },
+  {
+    "id": "L-1004",
+    "name": "#L-1004",
+    "created_at": "2026-08-04T11:40:17-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "86.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 1,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1005",
+    "name": "#L-1005",
+    "created_at": "2026-08-05T16:18:55-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "128.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-KIT",
+        "title": "Lumen Starter Kit",
+        "quantity": 2,
+        "price": "64.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1006",
+    "name": "#L-1006",
+    "created_at": "2026-08-06T08:55:02-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "128.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "128.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1007",
+    "name": "#L-1007",
+    "created_at": "2026-08-07T13:02:44-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "86.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 1,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1007",
+    "name": "#L-1007",
+    "created_at": "2026-08-07T13:02:44-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "86.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 1,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1008",
+    "name": "#L-1008",
+    "created_at": "2026-08-08T19:27:11-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "166.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "128.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1009",
+    "name": "#L-1009",
+    "created_at": "2026-08-05T06:30:00Z",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "220.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 2,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-TEE-WHT",
+        "title": "Lumen Tee \u2014 White",
+        "quantity": 1,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 2,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1010",
+    "name": "#L-1010",
+    "created_at": "2026-08-10T11:03:29-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "134.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-TEE-WHT",
+        "title": "Lumen Tee \u2014 White",
+        "quantity": 2,
+        "price": "48.00"
+      },
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 1,
+        "price": "38.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1011",
+    "name": "#L-1011",
+    "created_at": "2026-08-11T09:44:50-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "112.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-KIT",
+        "title": "Lumen Starter Kit",
+        "quantity": 1,
+        "price": "64.00"
+      },
+      {
+        "sku": "LM-TEE-BLK",
+        "title": "Lumen Tee \u2014 Black",
+        "quantity": 1,
+        "price": "48.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1012",
+    "name": "#L-1012",
+    "created_at": "2026-08-12T17:12:06-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "176.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "128.00"
+      },
+      {
+        "sku": "LM-TEE-WHT",
+        "title": "Lumen Tee \u2014 White",
+        "quantity": 1,
+        "price": "48.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1013",
+    "name": "#L-1013",
+    "created_at": "2026-08-13T12:30:18-07:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "140.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-CAP",
+        "title": "Lumen Cap",
+        "quantity": 2,
+        "price": "38.00"
+      },
+      {
+        "sku": "LM-KIT",
+        "title": "Lumen Starter Kit",
+        "quantity": 1,
+        "price": "64.00"
+      }
+    ]
+  },
+  {
+    "id": "L-1014",
+    "name": "#L-1014",
+    "created_at": null,
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "99.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {
+        "sku": "LM-HOOD",
+        "title": "Lumen Hoodie",
+        "quantity": 1,
+        "price": "99.00"
+      }
+    ],
+    "note": "created_at missing from source export"
+  }
+]
