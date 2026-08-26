@@ -11,6 +11,9 @@
     "serve": "node src/server.js",
     "serve:scale": "NORTHSTAR_DB_PATH=./data/northstar.scale.sqlite node src/server.js",
     "dev": "node --watch src/server.js",
+    "flaky:source": "python3 ../tools/flaky_source.py",
+    "ingest:flaky": "NORTHSTAR_SOURCE=http NORTHSTAR_SOURCE_URL=http://127.0.0.1:8787 NORTHSTAR_DB_PATH=./data/northstar.flaky.sqlite node src/ingest/run.js",
+    "prove:kill-safety": "node scripts/prove-kill-safety.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

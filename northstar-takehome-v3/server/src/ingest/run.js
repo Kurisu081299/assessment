@@ -4,14 +4,22 @@ import { migrate } from "../migrate.js";
 import { COMPANIES } from "../companies.js";
 import { ingestOrders } from "./orders.js";
 import { ingestAds } from "./ads.js";
-import { loadOrders, loadAds } from "./loadFixtures.js";
+import { loadOrders, loadAds, resetSourceIfHttp } from "./loadSource.js";
 
 // Re-running this end to end is idempotent: every table's natural key (source
 // order/refund id, or ad-row content hash) means a second pass upserts the same
 // rows to the same values rather than creating new ones. See NOTES.md for the
 // paired "run twice" output that proves it.
-export function ingestAll(db) {
+//
+// Async because the source may be tools/flaky_source.py (Part C): each
+// company/source pair is fully fetched -- with retries -- into a plain array
+// *before* any database write happens, so a kill mid-fetch touches no DB
+// state, and a kill mid-write lands inside one sqlite transaction (see
+// orders.js/ads.js) that rolls back cleanly on next open. See NOTES.md ->
+// "Failures".
+export async function ingestAll(db) {
   migrate(db);
+  await resetSourceIfHttp();
 
   const startedAt = new Date().toISOString();
   const insertRun = db.prepare(
@@ -24,8 +32,8 @@ export function ingestAll(db) {
   try {
     for (const cfg of Object.values(COMPANIES)) {
       const company = getCompany.get(cfg.slug);
-      const orderRecords = loadOrders(cfg.slug);
-      const adRecords = loadAds(cfg.slug);
+      const orderRecords = await loadOrders(cfg.slug);
+      const adRecords = await loadAds(cfg.slug);
 
       const orderStats = ingestOrders(db, company, orderRecords);
       const adStats = ingestAds(db, company, adRecords);
@@ -57,7 +65,7 @@ export function ingestAll(db) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const db = openDb();
   const wallStart = process.hrtime.bigint();
-  const result = ingestAll(db);
+  const result = await ingestAll(db);
   const wallMs = Number(process.hrtime.bigint() - wallStart) / 1e6;
   // maxRSS is the process's peak resident set size *since process start*, in KB
   // on both darwin and linux (Node normalizes getrusage's platform-dependent

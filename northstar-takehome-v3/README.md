@@ -4,9 +4,9 @@ Slim commerce intelligence dashboards for two companies, built from their Shopif
 order exports and Meta ad exports. See [`NOTES.md`](NOTES.md) for the full data-quality
 review and design rationale, and [`CANDIDATE-BRIEF.md`](CANDIDATE-BRIEF.md) for the spec.
 
-This covers **Part A** (real schema, ingest, dashboards, tests) and **Part B**
-(scale ingest + latency). Part C and the day-2 change requests are not yet
-implemented.
+This covers **Part A** (real schema, ingest, dashboards, tests), **Part B**
+(scale ingest + latency), and **Part C** (ingest against a flaky HTTP source).
+The day-2 change requests are not yet implemented.
 
 ## Run it (one command)
 
@@ -58,16 +58,34 @@ SQLite connection is warm** (see `NOTES.md` → "Bottleneck" for the full
 before/after, including why the very first request after a restart used to be
 slower and how that's handled now).
 
+## Part C — failure handling (flaky source)
+
+```bash
+python3 tools/flaky_source.py       # http://127.0.0.1:8787, injects 5xx/429/
+                                     # truncated bodies/a duplicate page
+npm run ingest:flaky                # ingests from the flaky source into
+                                     # server/data/northstar.flaky.sqlite
+npm run prove:kill-safety           # SIGKILLs ingest mid-run, proves no
+                                     # half-written state, then re-ingests
+                                     # to completion and diffs vs. Part A
+```
+
+`ingest:flaky` finishes with exactly Part A's row counts and KPI totals —
+see `NOTES.md` → "Part C — Failures" for the per-failure-mode handling and
+the kill-safety proof.
+
 ## Tests
 
 ```bash
 npm test
 ```
 
-21 tests, asserting numbers (not "a function was called") for duplicate order rows,
+22 tests, asserting numbers (not "a function was called") for duplicate order rows,
 UTC-timestamp timezone conversion in both directions, refund netting and refund-date
 attribution, a spend-with-zero-orders day, inclusive date-range boundaries,
-wrong-currency ad exclusion, and idempotent re-ingest.
+wrong-currency ad exclusion, idempotent re-ingest, and — against the real
+`tools/flaky_source.py`, not a mock — ingest reproducing Part A's exact totals
+while actually triggering every injected failure mode.
 
 ## KPI definitions (in my own words)
 
@@ -99,8 +117,8 @@ calendar date (the company's IANA timezone, not UTC and not the server's clock).
 
 ## What's not built yet
 
-Part B (scale/latency), Part C (flaky-source failure handling), and the day-2 change
-requests (`changes.zip`) are out of scope for this pass and not implemented.
+The day-2 change requests (`changes.zip`) are out of scope for this pass and not
+implemented.
 
 The brief's commit-rule spacing requirement — at least two sessions 8+ hours apart —
 is a real-world constraint on when these commits land, not something a single

@@ -527,6 +527,211 @@ fix problems that don't exist yet at the size actually being tested.
 
 ---
 
-*Remaining NOTES.md sections (Failures, "what day 1 got wrong," the three
-written answers, and next-steps bullets) are written as Part C and CR1 are
-completed.*
+## Part C — Failures
+
+### Design: fetch fully, then write atomically
+
+`server/src/ingest/httpSource.js` fetches an entire (company, source) stream —
+following `next_cursor` through every page, with retries — into a plain array
+in memory, and only returns once that array is complete. `ingestOrders`/
+`ingestAds` never see a partial page; they receive the same shape of array
+whether it came from a local file (Part A) or from `tools/flaky_source.py`
+(Part C). No database write happens until the fetch is done.
+
+That split is what makes "no half-written state if killed" true without any
+special kill-handling code: a kill during the fetch phase touches the
+database not at all, and a kill during the write phase lands inside exactly
+one `db.transaction()` call (already required for idempotency in Part A —
+see `server/src/ingest/orders.js` and `ads.js`), which SQLite's WAL either
+commits in full or rolls back in full on the next open. There is no code
+path where a transaction is left half-applied, because `better-sqlite3`
+doesn't expose one.
+
+`server/src/ingest/loadSource.js` is the switch: `NORTHSTAR_SOURCE=http`
+routes `run.js` through `httpSource.js` instead of the local fixture files
+(`loadFixtures.js`, untouched — `test/helpers.js` still depends on its
+synchronous, file-only behavior), same env-var-toggle pattern Part B already
+used for `NORTHSTAR_FIXTURES=scale`.
+
+### Each failure mode, and how it's handled
+
+All in `server/src/ingest/httpSource.js`'s `fetchPage()`, one `for` loop per
+page, `MAX_ATTEMPTS = 8`:
+
+- **`500 {"error": "upstream"}`** (every 4th request) — treated as
+  transient. Retry with exponential backoff (`200ms × 2^attempt`, capped at
+  2s, plus jitter) — the server gave no indication of when it'll recover, so
+  a capped guess is the best available signal.
+- **`429` with `Retry-After: 1`** (every 7th request) — the server *did*
+  tell us when it'll recover, so we honor that header exactly instead of our
+  own backoff curve (`Number(res.headers.get("retry-after")) * 1000`, with a
+  1s fallback if the header's ever missing or non-numeric).
+- **Truncated body** (page 3 of any orders stream, first time only) — this
+  didn't surface the way I first expected. `flaky_source.py` sends a
+  `Content-Length` header declared as *double* the truncated byte count, then
+  closes the connection after writing only half — so Node's `fetch`
+  (undici) enforces the header strictly and throws
+  `ResponseContentLengthMismatchError` while reading the body, before
+  `JSON.parse` ever runs. My first version only wrapped `JSON.parse` in a
+  try/catch and left `res.text()` unguarded; the flaky-source test
+  (`server/test/flaky_ingest.test.js`) caught this immediately — the test
+  failed with that exact error the first time I ran it against the real
+  server, not a mock. Fixed by treating a body-read failure the same as a
+  JSON parse failure: both mean "bad body, re-fetch the same page," on a
+  short fixed 50ms delay rather than the 5xx backoff curve, since this isn't
+  the server being overloaded.
+- **Duplicate page** (page 2 of any orders stream returns the same
+  `next_cursor` it was requested with, first time only) — `fetchAllPages()`
+  tracks which cursors it has already appended to the result array in a
+  `Set`. Naively following `next_cursor` does re-request that page a second
+  time (and the server serves it again, this time with the correct
+  `next_cursor`) — but since the cursor's data is already in the array, the
+  second response's `data` is discarded and only its `next_cursor` is used to
+  keep walking forward. This is dedup by *page identity* (has this cursor's
+  data already been captured), not by record content — it works regardless
+  of whether the repeated page's rows are themselves duplicates of anything
+  else.
+- **1-in-15 requests, 2s latency** — no special handling. `fetch` has no
+  default timeout in Node, so the request just takes longer; the only
+  requirement is not assuming a fast response. This is the one mode where
+  "how you handle it" is "don't get in its way."
+
+### What I deliberately don't retry
+
+- **A 404 or other non-5xx/429 status.** That means a config error — wrong
+  company slug, wrong source path — not a flaky upstream. Retrying can't fix
+  a URL that will never resolve; `fetchPage` throws a distinct
+  `FatalFetchError` immediately instead of burning through `MAX_ATTEMPTS`
+  against a request destined to fail every time.
+- **Past `MAX_ATTEMPTS` (8) on any transient failure.** An unbounded retry
+  loop against a source that might be down for good is a hang, not
+  resilience. Giving up loudly (`throw`) after 8 attempts fails the whole
+  ingest run cleanly — no DB writes have happened yet for that
+  company/source (fetch precedes write), so there's nothing to unwind, and
+  the run can just be restarted once the source recovers.
+- **A failed write.** Nothing in `ingestOrders`/`ingestAds` catches and
+  retries a `db.transaction()` failure, on purpose — SQLite already retried
+  the durable part (the WAL commit is atomic), and retrying application code
+  *around* a half-run transaction is exactly the kind of state a correct
+  design shouldn't need to reason about. If a transaction throws, `ingestAll`
+  lets it propagate, logs the run as `"failed"` in `ingest_runs`, and leaves
+  recovery to "run ingest again" — which Part A's idempotency guarantee
+  already makes safe.
+- **A repeated page's *content*, once identity dedup has decided it's a
+  repeat.** I don't diff the two responses for the repeated page to confirm
+  they're byte-identical before discarding the second one — the mock
+  source's docstring guarantees the repeat is the same page, and the
+  order-level `UNIQUE(company_id, source_order_id)` upsert would make a
+  content mismatch harmless anyway (see Part A's dedupe rule). Verifying
+  that guarantee isn't a failure-handling requirement, it's paranoia the
+  schema already covers.
+
+### Proof: same numbers as Part A
+
+```
+$ python3 tools/flaky_source.py --port 8787 &
+$ curl -s http://127.0.0.1:8787/reset
+{"ok": true}
+$ npm run ingest:flaky
+Ingest success — started 2026-08-26T13:11:11.578Z, finished 2026-08-26T13:11:18.642Z
+Wall clock: 7092.1 ms   Peak RSS: 102.1 MB
+
+Lumen Co (lumen)
+  source: 16 order records, 15 ad records
+  orders upserted:   14
+  refunds upserted:  1
+  ad rows upserted:  15
+  ad rows skipped (exact duplicate): 0
+  ad rows currency mismatch: 0
+  issues logged: 1
+
+Harbor Co (harbor)
+  source: 16 order records, 15 ad records
+  orders upserted:   15
+  refunds upserted:  1
+  ad rows upserted:  15
+  ad rows skipped (exact duplicate): 0
+  ad rows currency mismatch: 1
+  issues logged: 1
+
+$ curl -s http://127.0.0.1:8787/stats
+{"requests": 27, "failed_500": 6, "failed_429": 3, "truncated": 2, "dup_pages": 2, "served": 72}
+```
+
+Every count (14/1/15 Lumen, 15/1/15 Harbor, one currency-mismatch issue on
+Harbor) is exactly Part A's numbers (see the idempotency proof above) — and
+the run really did hit all four injected HTTP failure modes on the way there
+(6× 500, 3× 429, 2× truncated, 2× duplicate page), not zero of them by luck
+of timing.
+
+`server/test/flaky_ingest.test.js` asserts this automatically and is part of
+`npm test`: it spawns the real `flaky_source.py`, runs ingest against it, and
+asserts both the row counts and the full KPI totals equal a same-process
+Part A ingest from the local files — plus asserts on `/stats` that
+`failed_500`, `failed_429`, `truncated`, and `dup_pages` are all `> 0`, so
+the test can't silently pass by never actually triggering a failure mode.
+
+### Proof: no half-written state if killed mid-run
+
+`server/scripts/prove-kill-safety.js` (`npm run prove:kill-safety`) launches
+`node src/ingest/run.js` against the flaky source, `SIGKILL`s it partway
+through, inspects the database, then re-runs to completion and diffs the
+final totals against Part A. Two runs, two different kill points
+(`NORTHSTAR_KILL_DELAY_MS` controls where the kill lands):
+
+**Killed almost immediately (350ms in, before any company has finished
+fetching):**
+
+```
+DB state immediately after SIGKILL:
+{
+  "integrityCheck": "ok",
+  "orders": 0, "lineItems": 0, "refunds": 0, "adSpend": 0,
+  "ingestRuns": []
+}
+```
+
+**Killed later (3.5s in, after Lumen's orders+ads have committed but before
+Harbor starts):**
+
+```
+DB state immediately after SIGKILL:
+{
+  "integrityCheck": "ok",
+  "orders": 13, "lineItems": 24, "refunds": 1, "adSpend": 15,
+  "ingestRuns": []
+}
+```
+
+Both times, `PRAGMA integrity_check` returns `"ok"` — SQLite's own proof the
+WAL never left a torn write behind — and both times the row counts land
+exactly on a *company/source transaction boundary* (0 companies done, or one
+company's orders-transaction and ads-transaction both fully committed): never
+a number that implies a transaction was interrupted mid-write, because none
+was observed to be. In both cases, re-running ingest to completion against
+that same (possibly partial) database converges to the identical, correct
+final state:
+
+```
+lumen: got {"orders":13,"grossSales":1750,"netRevenue":1558,"refunds":192,"adSpend":771.15,"roas":2.0203592037865525}
+lumen: exp {"orders":13,"grossSales":1750,"netRevenue":1558,"refunds":192,"adSpend":771.15,"roas":2.0203592037865525}
+lumen: MATCH
+
+harbor: got {"orders":14,"grossSales":2580,"netRevenue":2500,"refunds":80,"adSpend":1076.1,"roas":2.3232041631818605}
+harbor: exp {"orders":14,"grossSales":2580,"netRevenue":2500,"refunds":80,"adSpend":1076.1,"roas":2.3232041631818605}
+harbor: MATCH
+
+PASS -- post-kill re-ingest reproduces Part A totals exactly.
+```
+
+This isn't a different code path from a normal re-ingest — it's the same
+idempotent upsert behavior Part A already proved, just started from a
+partially-populated DB instead of an empty one. "No half-written state" and
+"idempotent re-ingest" turn out to be the same guarantee looked at from two
+angles: the first says a kill can't corrupt the DB, the second says
+resuming after one doesn't need special-case code.
+
+---
+
+*Remaining NOTES.md sections ("what day 1 got wrong," the three written
+answers, and next-steps bullets) are written as CR1 is completed.*
