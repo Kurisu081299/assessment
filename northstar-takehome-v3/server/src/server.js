@@ -13,7 +13,9 @@ export function createApp(db) {
   const app = express();
 
   if (existsSync(WEB_DIST)) {
-    app.use(express.static(WEB_DIST));
+    // index: false -- "/" must hit our own handler below, not auto-serve the SPA
+    // shell (which is only valid under a checked /d/:token route).
+    app.use(express.static(WEB_DIST, { index: false }));
   }
 
   // Wrong or unknown token -> a real 404, not a redirect and not the SPA shell.
