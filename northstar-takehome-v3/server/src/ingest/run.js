@@ -56,8 +56,16 @@ export function ingestAll(db) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const db = openDb();
+  const wallStart = process.hrtime.bigint();
   const result = ingestAll(db);
+  const wallMs = Number(process.hrtime.bigint() - wallStart) / 1e6;
+  // maxRSS is the process's peak resident set size *since process start*, in KB
+  // on both darwin and linux (Node normalizes getrusage's platform-dependent
+  // unit) -- since ingest is this process's only real work, it's a direct peak-
+  // memory reading, not an estimate from periodic sampling.
+  const peakRssMb = process.resourceUsage().maxRSS / 1024;
   console.log(`Ingest ${result.status} — started ${result.startedAt}, finished ${result.finishedAt}`);
+  console.log(`Wall clock: ${wallMs.toFixed(1)} ms   Peak RSS: ${peakRssMb.toFixed(1)} MB`);
   for (const [slug, stats] of Object.entries(result.perCompany)) {
     console.log(`\n${stats.company} (${slug})`);
     console.log(`  source: ${stats.sourceOrderRecords} order records, ${stats.sourceAdRecords} ad records`);

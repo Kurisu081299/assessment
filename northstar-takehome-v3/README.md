@@ -4,8 +4,9 @@ Slim commerce intelligence dashboards for two companies, built from their Shopif
 order exports and Meta ad exports. See [`NOTES.md`](NOTES.md) for the full data-quality
 review and design rationale, and [`CANDIDATE-BRIEF.md`](CANDIDATE-BRIEF.md) for the spec.
 
-This covers **Part A** (real schema, ingest, dashboards, tests). Parts B/C and the
-day-2 change requests are not yet implemented.
+This covers **Part A** (real schema, ingest, dashboards, tests) and **Part B**
+(scale ingest + latency). Part C and the day-2 change requests are not yet
+implemented.
 
 ## Run it (one command)
 
@@ -40,6 +41,22 @@ npm run ingest
 ```
 
 See NOTES.md → "Idempotency proof" for the actual before/after output.
+
+## Part B — scale (300k orders/company)
+
+```bash
+python3 tools/gen_scale_fixtures.py   # writes fixtures/scale/*.jsonl + EXPECTED.json
+npm run ingest:scale                  # ingests into server/data/northstar.scale.sqlite
+npm run bench                         # 90-day dashboard latency, 3 measurement tools
+npm run serve:scale                   # serves the same two dashboard URLs off the scale DB
+```
+
+`ingest:scale` prints wall-clock time and peak RSS. `bench` prints in-process
+hrtime (cold + 30 warm calls) and `EXPLAIN QUERY PLAN` for every query the
+dashboard runs. The dashboard's 90-day render is **~80ms server-side once the
+SQLite connection is warm** (see `NOTES.md` → "Bottleneck" for the full
+before/after, including why the very first request after a restart used to be
+slower and how that's handled now).
 
 ## Tests
 

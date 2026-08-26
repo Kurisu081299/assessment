@@ -12,8 +12,11 @@
   "scripts": {
     "migrate": "npm run migrate --workspace server",
     "ingest": "npm run ingest --workspace server",
+    "ingest:scale": "npm run ingest:scale --workspace server",
+    "bench": "npm run bench --workspace server",
     "build": "npm run build --workspace web",
     "serve": "npm run serve --workspace server",
+    "serve:scale": "npm run serve:scale --workspace server",
     "start": "npm run ingest --workspace server && npm run build --workspace web && npm run serve --workspace server",
     "test": "npm test --workspace server",
     "dev:server": "npm run dev --workspace server",

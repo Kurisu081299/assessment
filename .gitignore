@@ -6,3 +6,8 @@ node_modules/
 **/server/data/*.sqlite-shm
 **/web/dist/
 *.log
+
+# Part B scale fixtures: deterministic (fixed seed) and regenerated with
+# `python3 tools/gen_scale_fixtures.py` -- ~190MB of JSONL not worth committing.
+# EXPECTED.json (the answer key) is small and stays tracked.
+**/fixtures/scale/*.jsonl

@@ -6,7 +6,10 @@
   "scripts": {
     "migrate": "node src/migrate.js",
     "ingest": "node src/ingest/run.js",
+    "ingest:scale": "NORTHSTAR_FIXTURES=scale NORTHSTAR_DB_PATH=./data/northstar.scale.sqlite node src/ingest/run.js",
+    "bench": "NORTHSTAR_DB_PATH=./data/northstar.scale.sqlite node scripts/bench-dashboard.js",
     "serve": "node src/server.js",
+    "serve:scale": "NORTHSTAR_DB_PATH=./data/northstar.scale.sqlite node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test test/*.test.js"
   },

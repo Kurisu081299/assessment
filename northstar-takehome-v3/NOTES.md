@@ -361,6 +361,172 @@ it as-is and flagging it plainly instead.
 
 ---
 
-*Remaining NOTES.md sections (Bottleneck, Failures, "what day 1 got wrong," the three
-written answers, and next-steps bullets) are written as Part B/C/CR1 are completed —
-this file covers Part 0 and Part A only, per the brief's instructions.*
+## Part B — scale ingest, and Bottleneck
+
+### Generating and ingesting the scale fixtures
+
+`python3 tools/gen_scale_fixtures.py` (defaults: 300k orders/company, 730 days,
+ending `2026-08-14`) writes `fixtures/scale/{lumen,harbor}.shopify.orders.jsonl`,
+`{lumen,harbor}.meta.ads.jsonl`, and `EXPECTED.json` (last-90-day answer key).
+Generation itself: **7.97s wall, 19.3MB peak RSS** (`/usr/bin/time -l python3 ...`).
+
+Ingest needed two changes, not a rewrite: `loadFixtures.js` now reads JSONL
+line-by-line instead of `JSON.parse`-ing one JSON array (`NORTHSTAR_FIXTURES=scale`
+switches it on; default behavior for the small fixtures is untouched), and
+`ingest/run.js` reports wall clock (`process.hrtime.bigint()`) and peak RSS
+(`process.resourceUsage().maxRSS`, which is the process's true peak since start,
+not a periodic sample) after the run. Everything else — schema, upsert keys,
+dedup rules, transaction boundaries — is unchanged from Part A.
+
+```
+$ npm run ingest:scale
+Ingest success — started 2026-08-26T12:39:38.500Z, finished 2026-08-26T12:39:51.677Z
+Wall clock: 13178.3 ms   Peak RSS: 775.0 MB
+
+Lumen Co (lumen)
+  source: 311992 order records, 2307 ad records
+  orders upserted:   302123
+  refunds upserted:  8955
+  issues logged: 920
+
+Harbor Co (harbor)
+  source: 312168 order records, 1544 ad records
+  orders upserted:   302149
+  refunds upserted:  9138
+  issues logged: 891
+```
+
+**13.2s wall clock, 775MB peak RSS, for both companies combined** (~624k order
+records, ~1M line items, ~18k refunds, ~3.9k ad rows, one Node process, single
+`db.transaction` per company per source — same batching pattern as Part A, just
+at 300k-order volume instead of a dozen).
+
+Correctness at scale: `getDashboardData` for each company's last-90-day range
+matches `EXPECTED.json` **exactly**, to the cent, on every field (orders, gross,
+net, spend) — checked by loading both and diffing in Node, not eyeballed:
+
+```
+Lumen Co:  got orders=36993 gross=5015510.00 net=4883491.00 spend=19986.31
+Lumen Co:  exp orders=36993 gross=5015510.00 net=4883491.00 spend=19986.31
+Harbor Co: got orders=37345 gross=9986425.00 net=9719075.00 spend=13572.92
+Harbor Co: exp orders=37345 gross=9986425.00 net=9719075.00 spend=13572.92
+```
+
+### Bottleneck
+
+**What was slow first.** Not a missing index — `EXPLAIN QUERY PLAN` on all four
+of `getDashboardData`'s queries shows index seeks (`SEARCH ... USING [COVERING]
+INDEX idx_*`), never a table scan, at scale. The actual first-found cost was the
+**gross-sales query** (`line_items JOIN orders ... GROUP BY store_local_date`) on
+a **freshly opened SQLite connection** — a cold hit on that join costs ~5-8x a
+warm one, because it's the query that touches the most distinct b-tree pages
+(the join fans out from ~37k matching orders to their line items via an index
+seek per order, so a cold connection has to page in and decode each one for the
+first time; a warm connection just re-reads already-decoded pages from SQLite's
+own cache).
+
+**How measured, three tools, on the ingested scale DB:**
+
+1. *In-process Node hrtime* (`server/scripts/bench-dashboard.js`), the same
+   function the API route calls, one cold call then 30 warm calls, per company:
+   ```
+   ## Lumen Co (lumen)
+     cold: 477.70ms   warm min/p50/p95/max: 79.38/80.78/94.58/144.67 ms
+   ## Harbor Co (harbor)
+     cold: 466.20ms   warm min/p50/p95/max: 77.06/79.36/81.23/82.60 ms
+   ```
+2. *Isolated repro*, the gross query alone, fresh `better-sqlite3` connection,
+   same statement object run twice:
+   ```
+   cache_size pragma: -16000
+   run 1 (cold conn): 584.85 ms
+   run 2 (warm):        72.71 ms
+   ```
+3. *`sqlite3` CLI, `.timer on`*, all four `getDashboardData` queries run in
+   sequence on one fresh connection (output suppressed so only query time is
+   timed, not terminal printing) — confirms the other three queries were never
+   the problem:
+   ```
+   gross:      Run Time: real 0.572   (incl. connection's first page-ins)
+   orderCount: Run Time: real 0.003
+   refunds:    Run Time: real 0.007
+   spend:      Run Time: real 0.001
+   ```
+   Plus `EXPLAIN QUERY PLAN` on the gross query:
+   `SEARCH o USING COVERING INDEX idx_orders_company_date`, then
+   `SEARCH li USING INDEX idx_line_items_order (order_id=?)` — both index seeks.
+
+**Why it matters in production, not just in a benchmark:** `server.js` opens
+**one** SQLite connection for the process's whole life (`createApp(db)` is
+called once at startup with one `db`), so this cold-connection cost isn't a
+per-request tax — it's a one-time tax that, without a fix, lands entirely on
+whichever real user's request happens to be first after a deploy or restart.
+At ~470-580ms that request would blow the 500ms budget; every request after it
+was already ~80ms, comfortably inside it.
+
+**What changed:** `server.js` now runs a `warmDashboardCache(db)` pass — one
+`getDashboardData` call per company over the same 90-day range — *before*
+`app.listen`, so the cold-connection cost is paid once at boot, off the request
+path, instead of on a user. (`kpi.js`'s queries and `migrate.js`'s indexes are
+untouched — this is a startup-sequencing fix, not a query fix, because the
+query plan was already correct.)
+
+**Before/after**, real server, real HTTP, first request after a cold start
+(`Server-Timing` header = the exact server-side render time; `curl` total =
+full round trip including JSON serialization + network):
+
+```
+# before (no warmup): first HTTP request after boot
+Server-Timing: dashboard;dur≈470-580          (over/at the 500ms budget)
+
+# after (npm run serve:scale): server log at boot
+Warmed dashboard cache for 2026-05-17..2026-08-14 in 1235.0ms
+
+# after: first real HTTP request, immediately after that boot line
+HTTP/1.1 200 OK
+Server-Timing: dashboard;dur=83.55
+curl total time: 0.094638s
+```
+
+The 500ms tax still happens — it just happens once, at boot, where nobody is
+waiting on it, instead of on the first operator to open the link.
+
+**What breaks next, and at what size.** The dashboard payload for the 90-day
+range is 155,997 bytes; **143,865 of those bytes (92%) are the `issues` array**
+(914 rows for Lumen at this scale), not the KPI daily table (90 rows). That
+query —
+`SELECT ... FROM ingest_issues WHERE company_id = ? ORDER BY detected_at DESC`
+— is fast today (1.17ms warm, 914 rows) but has two properties nothing else in
+`getDashboardData` has: **no `LIMIT`**, and **no relationship to the requested
+date range at all** — it returns every issue ever logged for the company,
+forever, regardless of what `start`/`end` the caller asked for. Its
+`EXPLAIN QUERY PLAN` also shows `USE TEMP B-TREE FOR ORDER BY` — there's no
+index on `detected_at`, so every request re-sorts the full table.
+
+Issue rows grow linearly with order volume (the scale generator's fixed
+0.3%-missing-`created_at` rate dominates the issue count) *and* accumulate
+across every ingest run over time, unlike the KPI tables, which are always
+windowed to the requested range. Extrapolating from today's 914 rows /
+143.9KB at 300k orders/company:
+- **~10x (≈3M orders/company):** ~9,100 issue rows, ~1.4MB just for this one
+  array in the JSON payload — still probably survives the query-time budget,
+  but the response is now mostly issues, not KPIs, and payload size starts
+  dominating wall-clock over the network.
+- **~100x (≈30M orders/company):** ~91,000 issue rows, ~14MB of JSON, and the
+  unindexed `ORDER BY` over that many rows stops being free — this is
+  roughly where I'd expect the *query* time, not just the payload, to start
+  eating into the 500ms budget on its own, on a code path that today looks
+  nowhere near the bottleneck.
+
+The fix, if this were going to production at that volume, is the same shape as
+everywhere else in this schema: window `ingest_issues` by date like the other
+four tables (it already has `detected_at`), paginate or cap it, and add an
+index that makes the `ORDER BY` free — I didn't make this change because it
+isn't needed at the tested scale and the brief asks what breaks next, not to
+fix problems that don't exist yet at the size actually being tested.
+
+---
+
+*Remaining NOTES.md sections (Failures, "what day 1 got wrong," the three
+written answers, and next-steps bullets) are written as Part C and CR1 are
+completed.*

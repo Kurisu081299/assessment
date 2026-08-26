@@ -19,3 +19,12 @@ export const COMPANIES = {
 };
 
 export const DEFAULT_RANGE = { start: "2026-08-01", end: "2026-08-14" };
+
+// Part B's 500ms budget is measured over a 90-day range ending on the same day
+// as DEFAULT_RANGE -- used both by the latency benchmark and by the server's
+// startup cache warmup (see NOTES.md "Bottleneck").
+export function lastNDaysRange(end, days) {
+  const endDate = new Date(`${end}T00:00:00Z`);
+  const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+  return { start: startDate.toISOString().slice(0, 10), end };
+}

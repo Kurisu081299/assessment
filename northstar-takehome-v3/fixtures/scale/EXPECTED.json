@@ -1,0 +1,32 @@
+{
+  "lumen": {
+    "range": [
+      "2026-05-17",
+      "2026-08-14"
+    ],
+    "orders": 36993,
+    "gross": "5015510.00",
+    "refunds": "132019.00",
+    "net": "4883491.00",
+    "spend": "19986.31",
+    "roas": "244.3418",
+    "unattributed_total": 908,
+    "duplicate_records_total": 3037,
+    "foreign_currency_ad_rows_total": 6
+  },
+  "harbor": {
+    "range": [
+      "2026-05-17",
+      "2026-08-14"
+    ],
+    "orders": 37345,
+    "gross": "9986425.00",
+    "refunds": "267350.00",
+    "net": "9719075.00",
+    "spend": "13572.92",
+    "roas": "716.0637",
+    "unattributed_total": 873,
+    "duplicate_records_total": 3030,
+    "foreign_currency_ad_rows_total": 10
+  }
+}
