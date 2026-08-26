@@ -216,7 +216,137 @@ both because they're reasonable, not because the code implementing them is reusa
 
 ---
 
-*Remaining NOTES.md sections (data-quality findings beyond the starter, dedupe rule,
-timezone/refund rules, Bottleneck, Failures, "what day 1 got wrong," the three written
-answers, and next-steps bullets) are written as Part A/B/C/CR1 are completed — this file
-currently covers Part 0 only, per the brief's instruction to do this section first.*
+## Part A — schema, dedupe rule, timezone/refund rules, idempotency proof
+
+### Schema
+
+Real tables, not `defaultdict`s: `companies`, `orders`, `line_items`, `refunds`,
+`ad_spend`, `ingest_issues`, `ingest_runs`. Money is integer cents everywhere past
+ingest (parsed from the source decimal strings by string splitting, not `float()` —
+fixes defect #9 without a bignum dependency). Store-local dates are computed **once,
+at ingest time**, via `Intl.DateTimeFormat` with the company's IANA timezone, and
+stored on the row — not recomputed per query. See
+[`server/src/migrate.js`](../northstar-takehome-v3/server/src/migrate.js),
+[`server/src/money.js`](../northstar-takehome-v3/server/src/money.js),
+[`server/src/timezone.js`](../northstar-takehome-v3/server/src/timezone.js).
+
+### Dedupe rule
+
+- **Orders**: a record with `refund_of` set is routed to the `refunds` table, never
+  the `orders` table (fixes defect #1). A plain order upserts on
+  `UNIQUE(company_id, source_order_id)` — a byte-identical duplicate row (`L-1007`,
+  `H-204`) collapses to one order because it shares that key (fixes defect #2). Line
+  items are deleted and re-inserted under the same order id on every upsert, so a
+  changed source row can't leave stale line items behind.
+- **Refunds**: keyed on `UNIQUE(company_id, source_refund_id)`, amount taken from
+  `total_refunded` (not the line-item sum) — Harbor's `H-201-R` is a genuine partial
+  refund ($80 of a $90 order), so using the line-item total would overstate the
+  refund by $10.
+- **Ad rows**: keyed on a SHA-256 hash of the *entire* row (campaign, date,
+  `date_start`, spend, currency, impressions, clicks), not `(campaign_id, date)`. A
+  byte-identical resend hashes the same and is skipped; two genuinely different spend
+  events for the same campaign on the same store-local day both hash differently and
+  both get summed. This is the direct fix for defect #4, and it's also what CR2 item
+  #1 ("dedupe ad rows on campaign ID + date") will need to be **declined** against —
+  see the reasoning below, since that's the exact rule that caused the original bug.
+
+### Timezone and refund rules
+
+- **Order date** = store-local calendar date of `created_at`, converted via the
+  company's IANA timezone from the record's true instant (handles both a `-07:00`
+  offset and a bare `Z`/UTC timestamp correctly — fixes defect #3).
+- **Refund date** = the refund record's *own* `created_at`, not the original order's
+  date. Per the KPI contract ("a refund lands on the refund's own store-local date"),
+  this is required, not a choice — `H-201-R` (issued Aug 11) refunding `H-201`
+  (placed Aug 1) must show the $80 hit on Aug 11, and it does.
+- **Ad spend date**: derived from `date_start` (the same tz-conversion function used
+  for orders), **not** the row's own `date` field. This was originally going to be a
+  "why bother, they always agree" design note — until building the real pipeline
+  found one row where they don't (below).
+
+### A second timezone bug the Starter review didn't catch
+
+While building `ad_dedup.test.js` I compared every ad row's `date` field against the
+store-local date computed from its own `date_start`, across both fixtures (30 rows).
+Every row agrees **except one**: Lumen's `L-C1` row with `date_start:
+"2026-08-05T06:00:00Z"` — labeled `"date": "2026-08-05"`, but 06:00 UTC is 23:00 on
+**Aug 4** in `America/Los_Angeles`. Same bug class as defect #3 (a UTC timestamp only
+looks store-local if you don't check), just on the ad side, and planted on the exact
+row the Starter review already flagged for a different reason (defect #4's "two
+genuine same-day spend events").
+
+That matters because it changes what "genuine same-day spend events" means: once you
+bucket by the true store-local date instead of trusting `date`, `L-C1`'s two Aug-5-
+labeled rows land on **different, correct days** ($61.00 → Aug 4, $67.40 → Aug 5),
+and there's no longer a genuine same-campaign-same-day case anywhere in the small
+fixtures. The Starter review's own "corrected" defect #4 figure — Aug 5 spend
+$150.90 — was itself computed by trusting the `date` field, which is exactly the
+shortcut this whole exercise argues against. The real Aug 5 spend is **$89.90**
+($67.40 + $22.50 from `L-C2`); Aug 4 gains a real $61.00 it didn't have under any
+`date`-trusting read. The grand total is unaffected either way (still $771.15 for
+Lumen) since it's just a resplit across two days within range — see
+`server/test/ad_dedup.test.js` for the pinned numbers and
+[bug #4's original writeup](#4-ad-spend-dedup-collapses-legitimate-same-day-spend-not-just-resends)
+above, which I'm leaving as originally written rather than editing after the fact —
+this note is the correction.
+
+### Idempotency proof
+
+`node server/src/ingest/run.js`, run three times in a row against the same
+persistent DB (no data reset between runs):
+
+```
+=== RUN 1 (fresh DB) ===
+Lumen Co (lumen): orders upserted 14, refunds upserted 1, ad rows upserted 15, issues logged 1
+Harbor Co (harbor): orders upserted 15, refunds upserted 1, ad rows upserted 15, issues logged 1
+
+=== RUN 2 (same DB, re-ingest) ===
+Lumen Co (lumen): orders upserted 14, refunds upserted 1, ad rows upserted 0, ad rows skipped (exact duplicate) 15, issues logged 1
+Harbor Co (harbor): orders upserted 15, refunds upserted 1, ad rows upserted 0, ad rows skipped (exact duplicate) 15, issues logged 0
+```
+
+("orders/refunds upserted" counts *upsert operations* — every real order is
+processed and its row is written to, both runs, which is correct upsert behavior —
+not new rows; "ad rows upserted" drops to 0 on the second run because every row
+already exists under its content hash. `issues logged` on run 2 is lower because
+`INSERT ... ON CONFLICT DO UPDATE` doesn't re-fire the currency-mismatch check for a
+row that's already a duplicate-skip — the issue itself is still in the table from run
+1, just not re-counted as "newly detected" on run 2.)
+
+Row counts, queried directly, after 2 and then a 3rd ingest run against the same DB:
+
+```
+$ sqlite3 server/data/northstar.sqlite "SELECT 'orders', COUNT(*) FROM orders UNION ALL
+  SELECT 'line_items', COUNT(*) FROM line_items UNION ALL
+  SELECT 'refunds', COUNT(*) FROM refunds UNION ALL
+  SELECT 'ad_spend', COUNT(*) FROM ad_spend UNION ALL
+  SELECT 'ingest_issues', COUNT(*) FROM ingest_issues;"
+
+after run 2: orders|27  line_items|39  refunds|2  ad_spend|30  ingest_issues|2
+after run 3: orders|27  line_items|39  refunds|2  ad_spend|30  ingest_issues|2
+```
+
+Identical after the 2nd and 3rd runs — re-ingesting the same source files is a
+no-op. This is also asserted directly (row counts *and* KPI totals, not just "it ran
+without error") in `server/test/idempotency.test.js`:
+
+```
+$ npm test --workspace server
+✔ re-running ingest twice produces identical row counts (32.4ms)
+✔ re-running ingest twice produces identical KPI totals (6.8ms)
+✔ re-running ingest three times is still stable (6.9ms)
+...
+ℹ tests 21
+ℹ pass 21
+ℹ fail 0
+```
+
+Full corrected KPI totals (Lumen 13/$1,750.00/$192.00/$1,558.00/$771.15/2.02,
+Harbor 14/$2,580.00/$80.00/$2,500.00/$1,076.10/2.32 — see the table above) are
+reproduced exactly by the real pipeline; see `server/test/totals.test.js`.
+
+---
+
+*Remaining NOTES.md sections (Bottleneck, Failures, "what day 1 got wrong," the three
+written answers, and next-steps bullets) are written as Part B/C/CR1 are completed —
+this file covers Part 0 and Part A only, per the brief's instructions.*
