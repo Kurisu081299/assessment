@@ -2,13 +2,13 @@
 
 Slim commerce intelligence dashboards for three companies, built from their Shopify
 order exports and Meta ad exports. See [`NOTES.md`](NOTES.md) for the full data-quality
-review and design rationale, and [`CANDIDATE-BRIEF.md`](CANDIDATE-BRIEF.md) for the spec.
+review and design rationale, [`CANDIDATE-BRIEF.md`](CANDIDATE-BRIEF.md) for the spec,
+and [`CR2-RESPONSE.md`](CR2-RESPONSE.md) for the day-2 operator-request writeup.
 
 This covers **Part A** (real schema, ingest, dashboards, tests), **Part B**
 (scale ingest + latency), **Part C** (ingest against a flaky HTTP source), and
-**CR1** (`changes.zip`: a third company, Fina Co, plus a week-over-week
-comparison on every dashboard). CR2 (four operator requests) is not yet
-implemented.
+**Day 2** (`changes.zip`: a third company plus a week-over-week comparison,
+and four operator requests answered DONE/DECLINED/CHANGED with evidence).
 
 ## Run it (one command)
 
@@ -83,14 +83,15 @@ the kill-safety proof.
 npm test
 ```
 
-30 tests, asserting numbers (not "a function was called") for duplicate order rows,
+31 tests, asserting numbers (not "a function was called") for duplicate order rows,
 UTC-timestamp timezone conversion in both directions, refund netting and refund-date
 attribution, a spend-with-zero-orders day, inclusive date-range boundaries,
 wrong-currency ad and order exclusion, voided-order exclusion, offset-less/ambiguous
-timestamps, a same-batch order-id conflict, the week-over-week comparison (including
-its "no data" and zero-baseline cases), idempotent re-ingest, and — against the real
-`tools/flaky_source.py`, not a mock — ingest reproducing Part A's exact totals
-while actually triggering every injected failure mode.
+timestamps, a same-batch order-id conflict, a negative-spend platform credit, the
+week-over-week comparison (including its "no data" and zero-baseline cases),
+idempotent re-ingest, and — against the real `tools/flaky_source.py`, not a mock —
+ingest reproducing Part A's exact totals while actually triggering every injected
+failure mode.
 
 ## KPI definitions (in my own words)
 
@@ -110,10 +111,11 @@ calendar date (the company's IANA timezone, not UTC and not the server's clock).
 - **Ad spend** — sum of ad spend attributed to that store-local day, in the
   company's own currency. A resend of the exact same spend row doesn't double-count
   it; two genuinely different spend events for the same campaign on the same day
-  both count. A row reported in a different currency than the company's is excluded
-  from the total and flagged, not silently converted or dropped — and the same
-  rule applies to an **order** in the wrong currency, excluded from
-  gross/net/order-count and shown separately.
+  both count; a real platform-issued credit (negative spend) reduces the total,
+  since that's what the company was actually billed. A row reported in a different
+  currency than the company's is excluded from the total and flagged, not silently
+  converted or dropped — and the same rule applies to an **order** in the wrong
+  currency, excluded from gross/net/order-count and shown separately.
 - **ROAS** — net revenue ÷ ad spend for the day (or the range). Shown as an em dash
   when spend is 0 for that period, rather than a divide-by-zero or a blank.
 - **Comparison strip** — the last day of the selected range vs. the same weekday
@@ -129,9 +131,6 @@ calendar date (the company's IANA timezone, not UTC and not the server's clock).
 - Root `package.json` uses npm workspaces so a single `npm install` covers both.
 
 ## What's not built yet
-
-CR2 (`changes/CR2.md`, four operator requests) is out of scope for this commit and
-not yet implemented.
 
 The brief's commit-rule spacing requirement — at least two sessions 8+ hours apart —
 is a real-world constraint on when these commits land, not something a single

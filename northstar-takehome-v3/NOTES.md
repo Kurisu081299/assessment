@@ -884,3 +884,92 @@ order in their fixtures to exercise them. A third company didn't strain the
 design; it strained the two-company *fixtures'* coverage of the design.
 
 ---
+## Day 2 — CR2: operator requests
+
+See [CR2-RESPONSE.md](CR2-RESPONSE.md) for the four operator requests and a
+DONE/DECLINED/CHANGED verdict on each. Two are declined against the evidence
+already in this repo (the existing ad-dedup tests, and the brief's own 404
+requirement); the other two are done with a twist worth a one-line summary
+here too: the "delete the bad fixture row" request became "keep the row,
+include its effect on the total, flag it" (NOTES defect analogy to #10/#11
+above — visible and correct beats invisible and "clean"), and the "401 instead
+of 404" request became "keep the 404, fix the copy" for the same
+information-leak reason the brief specifies 404 in the first place.
+
+---
+
+## Written answers
+
+**1. Which single query or function in your repo is most likely to be wrong in
+production, and what would tell you?**
+[`getSingleDayMetrics`/`getComparison` in kpi.js](server/src/kpi.js#L39) — the
+"same day last week" comparison added for CR1. Every other KPI query has
+1-2 years of scale-fixture data and a Part B benchmark behind it; this one has
+exactly the 14 days of hand-authored fixtures it was built and tested against.
+It assumes `daysBefore(end, 7)` always lands on a real prior week that's
+worth comparing to — for a company whose data starts mid-range (a new
+customer's first two weeks live), or across a DST transition in a timezone
+that observes it (Manila and Sydney don't; Los Angeles does — a Lumen range
+straddling a DST boundary is untested), the "same weekday" framing could
+compare across a discontinuity we haven't checked. What would tell me: a
+production dashboard for a real, older company (not a 14-day fixture) where
+the percentage swings look implausible on a day I can independently verify
+against Shopify's own numbers — or simply a wider fixture (60+ days, crossing
+a DST boundary) I haven't built here.
+
+**2. If the order file were 100× larger tomorrow, which line of your code fails
+first? Why that one?**
+[`loadFixtures.js`'s `JSON.parse(readFileSync(...))`](server/src/ingest/loadFixtures.js#L32)
+for the *small*-fixture path (not the JSONL scale path, which already
+streams line-by-line for exactly this reason — see "Bottleneck" above). It
+reads the whole file into memory as one string and parses it as one JSON
+value; at 100× Lumen/Harbor/Fina's current combined ~40 small orders that's
+still trivial, but the small-fixture loader was never meant to scale — it's
+JSONL (`gen_scale_fixtures.py`) that exists specifically because a single
+`JSON.parse` on a multi-hundred-MB array literal blows past a comfortable
+heap size and pauses the event loop for the whole parse. If someone pointed
+`loadOrders()` at a 100×-larger *non-scale* `.json` file instead of migrating
+it to JSONL first, that line is where it falls over — not gracefully, an OOM
+or multi-second synchronous stall, with the fix already sitting one file over
+in `readJsonl`.
+
+**3. Look at your transcripts. Where did the AI cost you the most time, and
+what would you do differently next time you drive it on a task like this?**
+See `AI-MOMENTS.md` for the specific instances with transcript line numbers.
+The pattern across them: the AI's first pass at a KPI query was almost always
+*plausible* — it ran, it returned numbers that looked like real numbers — and
+the actual time cost was mine, re-deriving the correct number by hand from the
+fixture before trusting or rejecting what it wrote. That's slower than it
+sounds the first time and fast every time after, because the fixtures are
+small enough to hand-verify. Next time: write the hand-verified expected
+number down *before* asking the AI to implement the query, not after, so
+"does this match" is a one-line diff instead of a fresh derivation under time
+pressure.
+
+## What we'd do differently in production
+
+- Give every ad/order/refund row a real ingestion **batch id** and keep raw
+  source payloads (not just the parsed fields we chose to store) — CR2's
+  "just delete the bad row" ask would have been a non-issue with an
+  immutable raw-payload table underneath the parsed one; we could show the
+  credit *and* the exact wire payload Meta sent, instead of reconstructing
+  intent from the parsed fields alone.
+- Replace the flat `ingest_issues` table with a typed severity (`info` /
+  `excluded` / `error`) — right now "a voided order" and "an unparseable
+  timestamp" render with equal visual weight on the dashboard, and an
+  operator scanning quickly can't tell "fine, just FYI" from "you're missing
+  real revenue" at a glance.
+- The comparison feature (CR1) needs a wider fixture than 14 hand-authored
+  days to trust in production — specifically a DST-crossing range for a
+  timezone that observes it, and a company whose data has a real start date
+  before the "no data" branch gets exercised by anything other than a
+  synthetic out-of-range test.
+- `ingestAll`'s per-company `ENOENT` skip (see "What day 1 got wrong") is the
+  right behavior for a demo/take-home; in production I'd rather a company
+  onboarding to a new source show up as a first-class "not yet backfilled"
+  state on its own dashboard than a warning that only appears in server logs.
+- Currency mismatch and voided-order exclusion are currently duplicated
+  across three query sites in `kpi.js` (range totals, single-day metrics, and
+  soon-you'll-need-it-again if a new KPI is added) as a repeated `WHERE`
+  clause fragment rather than a shared view/CTE. Fine at this scale; the
+  third or fourth caller is where I'd factor it out.

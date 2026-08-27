@@ -39,7 +39,10 @@ export function createApp(db) {
   app.get("/d/:token", (req, res) => {
     const company = getCompanyByToken(db, req.params.token);
     if (!company) {
-      return res.status(404).send("Not found.");
+      // CR2 #2: kept the 404 (see web/src/pages/NotFoundPage.jsx for why a 401
+      // would leak information an unguessable link is meant to withhold) but
+      // gave it copy that doesn't read as "the site is down".
+      return res.status(404).send("This link is invalid or has expired. Ask us for a new one.");
     }
     const indexPath = join(WEB_DIST, "index.html");
     if (!existsSync(indexPath)) {

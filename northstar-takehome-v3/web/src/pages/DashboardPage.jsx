@@ -7,6 +7,7 @@ import DailyChart from "../components/DailyChart.jsx";
 import IssuesStrip from "../components/IssuesStrip.jsx";
 import ComparisonStrip from "../components/ComparisonStrip.jsx";
 import NotFoundPage from "./NotFoundPage.jsx";
+import { localDateTime } from "../format.js";
 
 export default function DashboardPage() {
   const { token } = useParams();
@@ -41,6 +42,7 @@ export default function DashboardPage() {
 
   const { company, range, daily, totals, lastIngestAt, issues, excludedForeignSpend, excludedForeignRevenue, comparison } =
     data;
+  const localIngestAt = lastIngestAt ? localDateTime(lastIngestAt, company.timezone) : null;
 
   return (
     <div className="dashboard">
@@ -75,9 +77,8 @@ export default function DashboardPage() {
         currency={company.currency}
       />
 
-      <footer className="dashboard-footer">
-        Last successful ingest:{" "}
-        {lastIngestAt ? `${lastIngestAt} UTC` : "never"}
+      <footer className="dashboard-footer" title={lastIngestAt ? `${lastIngestAt} UTC` : undefined}>
+        Last successful ingest: {localIngestAt ?? "never"}
       </footer>
     </div>
   );

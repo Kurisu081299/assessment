@@ -7,6 +7,7 @@ const REASON_LABEL = {
   ambiguous_timestamp: "excluded — timestamp has no timezone, can't be trusted",
   voided_order: "excluded — order voided, not a sale",
   conflicting_duplicate_in_batch: "same order id sent twice with different content — last one kept",
+  negative_spend_credit: "negative spend — platform credit, included in total",
 };
 
 // Rows the pipeline couldn't cleanly use must be visible, not silently dropped.

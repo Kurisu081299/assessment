@@ -83,6 +83,23 @@ export function ingestAds(db, company, records) {
       }
       stats.rowsUpserted++;
 
+      // Negative spend is a real platform-issued credit (Meta refunding an
+      // over-charge), not corrupt data -- it genuinely reduces what the company
+      // was billed that day, so it stays in the sum (CR2-RESPONSE.md #4: we do
+      // NOT hand-delete it from the fixture, which would silently erase the
+      // audit trail and re-break the moment the fixture is re-synced). Flagged
+      // here so it's visible on the dashboard rather than an unexplained dip.
+      if (decimalStringToCents(rec.spend) < 0) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: `${rec.campaign_id}:${rec.date_start}`,
+          reason: "negative_spend_credit",
+          detail: `ad row for ${rec.campaign_id} on ${storeLocalDate} has negative spend (${rec.spend} ${rec.currency ?? company.currency}) -- treated as a platform credit and included in the total, not deleted`,
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+      }
+
       if (rec.currency && rec.currency !== company.currency) {
         stats.currencyMismatches++;
         recordIssue.run({

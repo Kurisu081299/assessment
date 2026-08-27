@@ -22,3 +22,21 @@ export function percent(value) {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
 }
+
+// Renders an ISO instant in the company's own timezone -- CR2 #3: the "last
+// ingest" time was UTC-only, which doesn't tell an operator at a glance whether
+// this morning's local sync ran.
+export function localDateTime(isoTimestamp, timeZone) {
+  if (!isoTimestamp) return null;
+  // dateStyle/timeStyle can't be mixed with timeZoneName (Intl throws) -- spell
+  // out the fields instead so the timezone abbreviation still shows.
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(isoTimestamp));
+}
