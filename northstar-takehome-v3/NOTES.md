@@ -936,33 +936,47 @@ in `readJsonl`.
 **3. Look at your transcripts. Where did the AI cost you the most time, and
 what would you do differently next time you drive it on a task like this?**
 See `AI-MOMENTS.md` for the full accounting — I checked every human-typed
-message across all three transcripts and found exactly one live correction,
-not five to eight, and said so rather than padding the count. That one moment
-(`session-03.txt`, ~lines 3171–3300) is where the AI cost the most time: asked
-to export the session, it stated confidently and specifically that it had "no
-tool that can generate or dump this session's own transcript from my side,"
-which sounded authoritative and was wrong — the export zip was already
-sitting in the directory from an earlier step. Three human turns went into
-getting past a wrong answer delivered with full confidence, when the actual
-fix was one `find` command. Next time: when the AI asserts a hard limitation
-about its own capabilities ("I can't do X"), have it check for the concrete
-evidence *before* accepting or arguing with the claim — a suspiciously
+message across all four transcripts (session-04 included, once it existed
+to check) and found exactly one live correction, not five to eight, and said
+so rather than padding the count. That one moment (`session-03.txt`, ~lines
+3171–3300) is where the AI cost the most time: asked to export the session,
+it stated confidently and specifically that it had "no tool that can
+generate or dump this session's own transcript from my side," which sounded
+authoritative and was wrong — the export zip was already sitting in the
+directory from an earlier step. Three human turns went into getting past a
+wrong answer delivered with full confidence, when the actual fix was one
+`find` command. Next time: when the AI asserts a hard limitation about its
+own capabilities ("I can't do X"), have it check for the concrete evidence
+*before* accepting or arguing with the claim — a suspiciously
 specific-sounding "I have no tool for this" is exactly the kind of confident
 wrongness that's cheapest to catch by looking for the file, not by debating
 the AI's self-assessment.
 
-The broader shape of the driving style across Parts 0/A/B/C — one detailed
-task prompt, a plan approved as-is, then a long autonomous stretch — meant
-most actual verification happened *after* the fact, against `NOTES.md`'s
-hand-derived numbers and the test suite, rather than through live correction
-mid-task. That's a real tradeoff, not free: it's fast when the spec is
-well-understood (which Parts A–C were, since the Starter review had already
-mapped every defect), but it means an error in judgment during the
-autonomous stretch — as opposed to a factual error like the export one —
-would only surface once the whole pass was done and I sat down to check it,
-not mid-flight. Day 2's CR2 request-by-request review (this session) was
-driven more incrementally for exactly that reason: four independent product
-asks are a natural checkpoint size, not a save-it-all-for-the-end one.
+I originally wrote the paragraph below speculatively, guessing that Day 2's
+CR2 request-by-request review "was driven more incrementally" than Parts
+0/A/B/C, on the theory that four operator asks needing DONE/DECLINED/CHANGED
+verdicts are a natural checkpoint size. Once `session-04.txt` actually
+existed to check, that guess was wrong: the entire Day 2 session — the third
+company, all four CR2 verdicts (including declining the ad-dedupe request
+and refusing the 401 change), and the re-ingest stretch — ran from **one**
+opening prompt (line 6, "Now this is Day 2...") with **zero** further live
+human turns anywhere in the 10,000-line transcript. The judgment calls in
+`CR2-RESPONSE.md` weren't negotiated live; they were made autonomously and
+handed back finished, and I only checked them against the code and tests
+afterward, the same way I checked everything else. That's the real lesson,
+corrected here rather than left standing: the "one detailed prompt, long
+autonomous stretch, verify after the fact" pattern held for *all four*
+sessions, not just three of them, including the one session where I most
+expected to see live pushback given its subject was literally "push back on
+requests." Next time I'd force a checkpoint before the CR2 verdicts are
+finalized — have it show its DECLINED/CHANGED reasoning and stop, rather
+than letting it write the response file and move straight on to the
+stretch feature — since a wrong judgment call there (unlike the export
+mistake) wouldn't announce itself as an error; it would just read as
+confident, reasonable-sounding prose in `CR2-RESPONSE.md` that happened to
+be wrong, and nothing in the autonomous-stretch pattern forces a live check
+on that until someone sits down and rereads it, which is exactly what I'm
+doing right now, after the fact, writing this.
 
 ## What we'd do differently in production
 

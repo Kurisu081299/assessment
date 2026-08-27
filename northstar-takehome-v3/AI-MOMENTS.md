@@ -1,16 +1,21 @@
 # AI-MOMENTS
 
 Not a diary — this is an honest accounting of what's actually in
-`transcripts/session-01.txt`, `session-02.txt`, and `session-03.txt`
-(Parts 0/A, B, and C respectively). I looked for five to eight moments and
-found **one**. I'm saying so directly, per the brief's own allowance, rather
-than padding this with weak matches.
+`transcripts/session-01.txt` through `session-04.txt` (Parts 0/A, B, C, and
+Day 2 — CR1, CR2, and the stretch — respectively). I looked for five to
+eight moments and found **one**. I'm saying so directly, per the brief's own
+allowance, rather than padding this with weak matches.
 
 ## Why there's only one
 
-I checked every human-authored message across all three transcripts (not
+I checked every human-authored message across all four transcripts (not
 tool-result echoes, which the transcript format also logs under the `USER`
-role and vastly outnumber real typed text). The actual count of typed human
+role and vastly outnumber real typed text — session-04 in particular has a
+long stretch where the AI `grep`/`sed`'d session-01–03.txt while drafting
+this file and `NOTES.md`, which reproduces those old transcripts'
+`#N USER [...] (source line M)` headers verbatim *inside* tool_result blocks;
+I had to check message-number/source-line monotonicity, not just the header
+regex, to tell those apart from a live turn). The actual count of typed human
 messages is small:
 
 - **session-01.txt** (Part 0 + Part A): one long initial task prompt (line 6),
@@ -21,18 +26,27 @@ messages is small:
   commit this" (line 3508), "push it" (line 3645).
 - **session-03.txt** (Part C): one initial task prompt (line 6), then the
   export exchange below.
+- **session-04.txt** (Day 2 — CR1, CR2, stretch): exactly **one** live human
+  turn in the entire 10,000-line transcript — the opening prompt (line 6:
+  *"Now this is Day 2. Please ready and make changes based on today's
+  tasks. Stretch. and the changes folder."*, plus the pasted brief). Every
+  other apparent `#N USER` header in the file resolves to a tool_result, not
+  a new human turn. That includes CR2's four DECLINED/CHANGED/DONE verdicts
+  (the ad-dedupe pushback, the 404-vs-401 call) — I expected, before actually
+  checking, that a session built around pushing back on operator requests
+  would show live back-and-forth while making those calls. It doesn't: all
+  four verdicts, the third-company defects, and the re-ingest stretch were
+  produced inside one uninterrupted autonomous run from the single opening
+  prompt, with the judgment calls made and then presented as done, not
+  negotiated turn-by-turn. That's a real finding about how this session was
+  driven, not a gap in this file's research.
 
-Each session was driven as one detailed task prompt followed by a long
-autonomous stretch, approved as planned, with commit/push/export as the only
-live checkpoints — not iterative pair-programming with line-by-line
-correction. That's a real, honest limitation of *how these three sessions
-were driven*, not something to dress up. (Day 2's own session — the one that
-added the third company, answered the operator requests, and built the
-re-ingest stretch — has its own moments of genuine engineering judgment
-against a request, documented in `NOTES.md` and `CR2-RESPONSE.md`, but that
-session hadn't been exported to a numbered transcript file as of this
-writing; if a `session-04.txt` is added later, real corrections from that
-review pass belong here too.)
+Every session was driven as one detailed task prompt followed by a long
+autonomous stretch, with commit/push/export (and, once, a genuinely wrong
+capability claim) as the only live checkpoints — not iterative
+pair-programming with line-by-line correction. That's a real, honest
+limitation of *how all four sessions were driven*, not something to dress
+up.
 
 ## The one moment
 
