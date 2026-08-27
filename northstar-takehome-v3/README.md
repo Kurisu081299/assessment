@@ -1,12 +1,14 @@
 # Northstar
 
-Slim commerce intelligence dashboards for two companies, built from their Shopify
+Slim commerce intelligence dashboards for three companies, built from their Shopify
 order exports and Meta ad exports. See [`NOTES.md`](NOTES.md) for the full data-quality
 review and design rationale, and [`CANDIDATE-BRIEF.md`](CANDIDATE-BRIEF.md) for the spec.
 
 This covers **Part A** (real schema, ingest, dashboards, tests), **Part B**
-(scale ingest + latency), and **Part C** (ingest against a flaky HTTP source).
-The day-2 change requests are not yet implemented.
+(scale ingest + latency), **Part C** (ingest against a flaky HTTP source), and
+**CR1** (`changes.zip`: a third company, Fina Co, plus a week-over-week
+comparison on every dashboard). CR2 (four operator requests) is not yet
+implemented.
 
 ## Run it (one command)
 
@@ -27,6 +29,7 @@ ready. From a fresh clone this is under a minute (`npm install` is the only slow
 |-----------|-----|
 | Lumen Co  | http://localhost:4000/d/551c26ff3a0ccd4f85eb6f247d4053475525c8d7244f9604 |
 | Harbor Co | http://localhost:4000/d/668f37f9758664de0943d2954ea73b123991b18ef441faf2 |
+| Fina Co   | http://localhost:4000/d/c2a67cb95295010773053ac849b8635f260e7774c8eabca3 |
 
 An unknown or mistyped token returns a real HTTP 404, not a redirect and not the app
 shell — try `http://localhost:4000/d/anything-else`.
@@ -80,10 +83,12 @@ the kill-safety proof.
 npm test
 ```
 
-22 tests, asserting numbers (not "a function was called") for duplicate order rows,
+30 tests, asserting numbers (not "a function was called") for duplicate order rows,
 UTC-timestamp timezone conversion in both directions, refund netting and refund-date
 attribution, a spend-with-zero-orders day, inclusive date-range boundaries,
-wrong-currency ad exclusion, idempotent re-ingest, and — against the real
+wrong-currency ad and order exclusion, voided-order exclusion, offset-less/ambiguous
+timestamps, a same-batch order-id conflict, the week-over-week comparison (including
+its "no data" and zero-baseline cases), idempotent re-ingest, and — against the real
 `tools/flaky_source.py`, not a mock — ingest reproducing Part A's exact totals
 while actually triggering every injected failure mode.
 
@@ -99,15 +104,23 @@ calendar date (the company's IANA timezone, not UTC and not the server's clock).
   issued today against last week's order shows up in today's net, not last week's.
 - **Orders** — count of distinct real orders. A refund is not a second order (the
   source data models it as a separate record, but it's an event against an existing
-  order, not a new sale), and a byte-identical duplicate row from the export is not
-  a second order either.
+  order, not a new sale), a byte-identical duplicate row from the export is not
+  a second order either, and a **voided** order (payment authorization voided,
+  nothing captured) is not a sale.
 - **Ad spend** — sum of ad spend attributed to that store-local day, in the
   company's own currency. A resend of the exact same spend row doesn't double-count
   it; two genuinely different spend events for the same campaign on the same day
   both count. A row reported in a different currency than the company's is excluded
-  from the total and flagged, not silently converted or dropped.
+  from the total and flagged, not silently converted or dropped — and the same
+  rule applies to an **order** in the wrong currency, excluded from
+  gross/net/order-count and shown separately.
 - **ROAS** — net revenue ÷ ad spend for the day (or the range). Shown as an em dash
   when spend is 0 for that period, rather than a divide-by-zero or a blank.
+- **Comparison strip** — the last day of the selected range vs. the same weekday
+  one week earlier (both in the company's own timezone), for net revenue, orders,
+  and ad spend. If either day has no data at all, the dashboard says so instead of
+  a comparison; if a day has data but a metric's baseline is legitimately zero, that
+  one metric shows "—" instead of a divide-by-zero or a misleading percentage.
 
 ## Architecture
 
@@ -117,8 +130,8 @@ calendar date (the company's IANA timezone, not UTC and not the server's clock).
 
 ## What's not built yet
 
-The day-2 change requests (`changes.zip`) are out of scope for this pass and not
-implemented.
+CR2 (`changes/CR2.md`, four operator requests) is out of scope for this commit and
+not yet implemented.
 
 The brief's commit-rule spacing requirement — at least two sessions 8+ hours apart —
 is a real-world constraint on when these commits land, not something a single

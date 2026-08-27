@@ -16,3 +16,9 @@ export function weekday(dateStr) {
     timeZone: "UTC",
   });
 }
+
+export function percent(value) {
+  if (value === null || value === undefined) return "—";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
+}

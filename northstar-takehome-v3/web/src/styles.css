@@ -95,6 +95,82 @@ body {
   margin-top: 0.25rem;
 }
 
+.comparison-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.comparison-strip h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.comparison-subtitle {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.comparison-no-data {
+  color: var(--muted);
+  margin: 0;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.comparison-cell {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.comparison-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.comparison-values {
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.comparison-current {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.comparison-previous {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.comparison-change {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.comparison-change.up {
+  color: #16a34a;
+}
+
+.comparison-change.down {
+  color: #dc2626;
+}
+
 .chart-section {
   background: var(--surface);
   border: 1px solid var(--border);

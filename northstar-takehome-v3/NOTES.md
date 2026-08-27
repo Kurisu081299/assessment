@@ -733,5 +733,154 @@ resuming after one doesn't need special-case code.
 
 ---
 
-*Remaining NOTES.md sections ("what day 1 got wrong," the three written
-answers, and next-steps bullets) are written as CR1 is completed.*
+## Day 2 — CR1: Fina Co (third company)
+
+`changes/CR1.md` asked for a third company (Fina Co, PHP, Asia/Manila) plus a
+"yesterday vs same day last week" comparison on every dashboard. Adding the
+company itself really was config + fixtures, no rewrite — see
+["What day 1 got wrong"](#what-day-1-got-wrong) for the one place that
+assumption didn't hold. Fina's fixtures are messier than Lumen/Harbor's on
+purpose (per the brief, "messy in ways the first two companies were not"), and
+finding out *how* was most of CR1's actual work.
+
+### New defects Fina's data surfaced
+
+**10. An order in the wrong currency was summed into revenue at face value.**
+Fina's `F-308` is a `"total_price": "50.00"`, `"currency": "USD"` order sitting
+in an otherwise all-PHP file. `ads.js` already excluded a foreign-currency ad
+row from spend (Starter review defect #5) — nothing on the orders side did the
+same thing. Before this fix, `kpi.js`'s gross-sales query summed
+`line_items.price_cents` with no currency check at all, so this order would
+have landed as **₱50.00** of PHP revenue instead of the $50.00 USD it actually
+is: an 8500%+ misstatement of that one row (₱50 ≈ $0.90 at typical PHP/USD
+rates), silently baked into the total with no error, no crash, no visible
+sign anything was wrong. Fixed the same way as the ad-side case: excluded from
+`gross`/`orders`/`net` ([kpi.js:130](server/src/kpi.js#L130),
+[:140](server/src/kpi.js#L140), refund join at [:156](server/src/kpi.js#L156)),
+flagged as an `ingest_issues` row
+([orders.js:130](server/src/ingest/orders.js#L130)), and surfaced in its own
+currency via `excludedForeignRevenue`
+([kpi.js:247](server/src/kpi.js#L247), rendered in
+[IssuesStrip.jsx](web/src/components/IssuesStrip.jsx)) — not converted, not
+dropped. Proven in
+[fina_third_company.test.js](server/test/fina_third_company.test.js) ("F-308…
+excluded from revenue and surfaced, not converted").
+
+**11. A voided order was never excluded from sales at all.** `F-305` has
+`"financial_status": "voided"` — a Shopify order whose payment authorization
+was voided, meaning nothing was ever captured. The schema has stored
+`financial_status` since Part A ([db.js schema, `orders.financial_status`
+column]) but nothing ever read it: every KPI query summed every order
+regardless of status. Lumen/Harbor only ever had `paid`/`refunded` orders, so
+this gap was invisible until Fina's data hit it. Fixed by excluding
+`financial_status = 'voided'` from gross/order-count/refund-eligibility
+everywhere ([kpi.js:44](server/src/kpi.js#L44),
+[:51](server/src/kpi.js#L51), [:130](server/src/kpi.js#L130),
+[:140](server/src/kpi.js#L140)) and flagging it for visibility
+([orders.js:119](server/src/ingest/orders.js#L119)) — a voided order is real,
+valid source data, just not a sale, so it stays visible rather than vanishing.
+
+**12. A timestamp with no UTC offset has no fixed instant.** `F-303`'s
+`created_at` is `"2026-08-03T23:30:00"` — no `Z`, no `+HH:MM`. Every other
+order in every fixture (including Lumen's and Harbor's) carries an explicit
+offset or `Z`. Per ECMA-262, `new Date()` on an offset-less date-time string
+resolves it against the *host machine's local timezone* — which for a server
+process is whatever `TZ` happens to be set to, non-deterministic across dev
+machines, CI, and production, and silently different depending on where
+ingest runs. We refuse to guess: `hasExplicitOffset()`
+([timezone.js:28](server/src/timezone.js#L28)) checks for a trailing `Z` or
+numeric offset, and both `orders.js` (order and refund `created_at`,
+[:65](server/src/ingest/orders.js#L65) and
+[:155](server/src/ingest/orders.js#L155)) and `ads.js` (`date_start`,
+[:52](server/src/ingest/ads.js#L52)) treat a failure the same as a missing
+timestamp: not ingested, flagged `ambiguous_timestamp`, visible in
+`ingest_issues`.
+
+**13. The same order id can appear twice in one batch with genuinely different
+content.** `F-306` appears twice in `fina.shopify.orders.json`: the first
+payload has 2 line items totalling ₱3,900, the second has 1 line item
+totalling ₱1,500. This isn't a byte-identical resend (Starter review defect
+#2's dedup, which already collapses those correctly) — it's the same id with
+different content inside one file, and there's no `updated_at` to say which
+is authoritative. The existing upsert
+(`ON CONFLICT(company_id, source_order_id) DO UPDATE`,
+[orders.js:15](server/src/ingest/orders.js#L15)) already resolves this via
+last-write-wins in file order — that behavior didn't change. What we added is
+visibility: a per-batch content hash comparison
+([orders.js:79](server/src/ingest/orders.js#L79)) flags
+`conflicting_duplicate_in_batch` when a second occurrence's content differs
+from the first, so this doesn't resolve invisibly the way it did before.
+
+**14. Deduping ad spend by `(campaign_id, date)` instead of full-row content
+would have been wrong before Fina, and Fina makes the cost concrete.** Not a
+new defect in our code — this is CR2 request #1, addressed below — but Fina's
+`F-C1` has a real same-day resend (`2026-08-11`, byte-identical, correctly
+collapsed) sitting right next to a real credit row (`2026-08-09`, `-250.00`,
+correctly kept) for the *same campaign*. A `(campaign_id, date)` key can't
+tell those apart; ours already can (defect #4, unchanged since Part A).
+
+### Comparison feature: "yesterday vs same day last week"
+
+Added `comparison` to `getDashboardData`'s response
+([kpi.js:95](server/src/kpi.js#L95)), rendered as
+[ComparisonStrip.jsx](web/src/components/ComparisonStrip.jsx) on every
+dashboard. Three decisions worth writing down:
+
+- **"Yesterday" = the last day of the *selected range*, not the real calendar
+  day relative to the server clock.** The brief's example range doesn't end on
+  today, and an operator paging through history should get a comparison for
+  the range they're actually looking at, not one anchored to whenever the
+  server happens to be running. "Same day last week" is a flat 7-day
+  subtraction on the already-store-local date string
+  ([kpi.js:39](server/src/kpi.js#L39) `daysBefore`) — no second timezone
+  conversion, since `store_local_date` is already a calendar date, not an
+  instant.
+- **Whole-day "no data" vs. per-metric zero baseline are different things, and
+  the brief only asked us to guard the first.** `hasData` on each side
+  ([kpi.js:70](server/src/kpi.js#L70)) means "any order or ad-spend row exists
+  for the company on this date at all" — a day before the company had any
+  activity. If either whole day has no data, the strip says so instead of
+  comparing (`comparison.test.js`, "a day with no data at all… is reported as
+  'no data'"). But a day that *has* data with a metric that happens to be zero
+  (Fina's Aug 7: real ad spend, zero orders) is a real, informative zero, not
+  "no data" — for that we render "—" on just that metric
+  (`percentChange` returns `null` when the baseline is 0,
+  [kpi.js:90](server/src/kpi.js#L90)) rather than either an `Infinity%`/`NaN`
+  spike or blacking out the whole comparison over one metric. Both cases are
+  proven in [comparison.test.js](server/test/comparison.test.js).
+- Net revenue, orders, and ad spend are computed with the exact same
+  currency/voided filters as the range KPIs
+  ([kpi.js:39](server/src/kpi.js#L39) `getSingleDayMetrics`) — otherwise the
+  comparison strip and the daily table below it could disagree about what
+  counts as a sale.
+
+### What day 1 got wrong
+
+Only one real assumption broke, and only in one place: **`ingestAll`
+([run.js:33](server/src/ingest/run.js#L33)) always iterated every configured
+company against whatever data source was active**, on the implicit assumption
+that every company has data for every source. That held by accident for two
+companies and two sources (real fixtures + the flaky HTTP mirror), and broke
+the instant a third company arrived without a matching entry in Part B's scale
+generator (`tools/gen_scale_fixtures.py` predates Fina and only ever wrote
+`lumen`/`harbor` — regenerating 300k+ rows for a third company was out of
+CR1's ~90-minute scope). Running `npm run ingest:scale` crashed the whole
+batch on Fina's missing file instead of just not having scale data for Fina.
+Fixed by catching a missing-fixture `ENOENT` per company and skipping just
+that company with a visible warning ([run.js:35](server/src/ingest/run.js#L35))
+— the two companies that do have scale data still ingest normally, and the gap
+is reported instead of silently absent or fatally crashing.
+
+Everything else — schema, dedup keys, timezone conversion, the KPI queries,
+the dashboard UI, the currency-mismatch pattern already built for ads — took
+Fina without a rewrite, which is what CR1's "this should not require a
+rewrite" was really testing: whether Part A's `(company_id, natural key)`
+uniqueness and per-currency filtering generalized past 2 examples, or were
+quietly hard-coded to them. They generalized. What *wasn't* generalized yet
+was the orders side of the currency check (defect #10 above) and the voided-
+order filter (#11) — those gaps existed in Part A's code the whole time, just
+invisible because Lumen and Harbor never had a mismatched-currency or voided
+order in their fixtures to exercise them. A third company didn't strain the
+design; it strained the two-company *fixtures'* coverage of the design.
+
+---

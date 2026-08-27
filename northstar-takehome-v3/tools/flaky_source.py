@@ -37,7 +37,7 @@ from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURES = os.path.join(HERE, "..", "fixtures")
-COMPANIES = ("lumen", "harbor")
+COMPANIES = ("lumen", "harbor", "fina")
 SOURCES = {"orders": "shopify.orders.json", "ads": "meta.ads.json"}
 
 STATE = {"requests": 0, "failed_500": 0, "failed_429": 0, "truncated": 0,

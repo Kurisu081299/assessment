@@ -1,0 +1,136 @@
+[
+  {
+    "id": "F-301",
+    "name": "#F-301",
+    "created_at": "2026-08-01T10:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "1500.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-BAG", "title": "Fina Tote Bag", "quantity": 1, "price": "1500.00"}
+    ]
+  },
+  {
+    "id": "F-302",
+    "name": "#F-302",
+    "created_at": "2026-08-02T15:30:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "2400.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-SHOE", "title": "Fina Sneaker", "quantity": 1, "price": "2400.00"}
+    ]
+  },
+  {
+    "id": "F-303",
+    "name": "#F-303",
+    "created_at": "2026-08-03T23:30:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "900.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-CAP", "title": "Fina Cap", "quantity": 1, "price": "900.00"}
+    ]
+  },
+  {
+    "id": "F-304",
+    "name": "#F-304",
+    "created_at": "2026-08-04T16:00:00Z",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "1500.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-BAG", "title": "Fina Tote Bag", "quantity": 1, "price": "1500.00"}
+    ]
+  },
+  {
+    "id": "F-305",
+    "name": "#F-305",
+    "created_at": "2026-08-05T11:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "voided",
+    "total_price": "2400.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-SHOE", "title": "Fina Sneaker", "quantity": 1, "price": "2400.00"}
+    ]
+  },
+  {
+    "id": "F-306",
+    "name": "#F-306",
+    "created_at": "2026-08-06T09:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "3900.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-BAG", "title": "Fina Tote Bag", "quantity": 1, "price": "1500.00"},
+      {"sku": "FN-SHOE", "title": "Fina Sneaker", "quantity": 1, "price": "2400.00"}
+    ]
+  },
+  {
+    "id": "F-306",
+    "name": "#F-306",
+    "created_at": "2026-08-06T09:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "1500.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-BAG", "title": "Fina Tote Bag", "quantity": 1, "price": "1500.00"}
+    ]
+  },
+  {
+    "id": "F-302-R",
+    "name": "#F-302-R",
+    "created_at": "2026-08-08T10:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "refunded",
+    "total_price": "2400.00",
+    "total_refunded": "2400.00",
+    "line_items": [
+      {"sku": "FN-SHOE", "title": "Fina Sneaker", "quantity": 1, "price": "2400.00"}
+    ],
+    "refund_of": "F-302"
+  },
+  {
+    "id": "F-307",
+    "name": "#F-307",
+    "created_at": "2026-08-10T20:00:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "900.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-CAP", "title": "Fina Cap", "quantity": 1, "price": "900.00"}
+    ]
+  },
+  {
+    "id": "F-308",
+    "name": "#F-308",
+    "created_at": "2026-08-12T12:00:00+08:00",
+    "currency": "USD",
+    "financial_status": "paid",
+    "total_price": "50.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-CAP", "title": "Fina Cap", "quantity": 1, "price": "50.00"}
+    ]
+  },
+  {
+    "id": "F-309",
+    "name": "#F-309",
+    "created_at": "2026-08-14T23:59:00+08:00",
+    "currency": "PHP",
+    "financial_status": "paid",
+    "total_price": "1500.00",
+    "total_refunded": "0.00",
+    "line_items": [
+      {"sku": "FN-BAG", "title": "Fina Tote Bag", "quantity": 1, "price": "1500.00"}
+    ]
+  }
+]

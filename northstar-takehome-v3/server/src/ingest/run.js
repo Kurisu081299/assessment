@@ -32,8 +32,25 @@ export async function ingestAll(db) {
   try {
     for (const cfg of Object.values(COMPANIES)) {
       const company = getCompany.get(cfg.slug);
-      const orderRecords = await loadOrders(cfg.slug);
-      const adRecords = await loadAds(cfg.slug);
+
+      // Part B's scale generator (tools/gen_scale_fixtures.py) only ever wrote
+      // lumen/harbor -- it predates Fina Co (CR1) and regenerating 300k+ rows
+      // for a third company is out of CR1's scope. A company missing a fixture
+      // for the active source (NORTHSTAR_FIXTURES=scale) is skipped with a
+      // visible warning rather than crashing the whole batch; every other
+      // source (the real fixtures, and the flaky HTTP source) has Fina data.
+      let orderRecords, adRecords;
+      try {
+        orderRecords = await loadOrders(cfg.slug);
+        adRecords = await loadAds(cfg.slug);
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          console.warn(`Skipping ${cfg.name}: no fixture for this source (${err.path})`);
+          perCompany[cfg.slug] = { company: company.name, skipped: true, reason: err.path };
+          continue;
+        }
+        throw err;
+      }
 
       const orderStats = ingestOrders(db, company, orderRecords);
       const adStats = ingestAds(db, company, adRecords);
@@ -76,6 +93,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   console.log(`Wall clock: ${wallMs.toFixed(1)} ms   Peak RSS: ${peakRssMb.toFixed(1)} MB`);
   for (const [slug, stats] of Object.entries(result.perCompany)) {
     console.log(`\n${stats.company} (${slug})`);
+    if (stats.skipped) {
+      console.log(`  SKIPPED — no fixture for this source (${stats.reason})`);
+      continue;
+    }
     console.log(`  source: ${stats.sourceOrderRecords} order records, ${stats.sourceAdRecords} ad records`);
     console.log(`  orders upserted:   ${stats.ordersUpserted}`);
     console.log(`  refunds upserted:  ${stats.refundsUpserted}`);

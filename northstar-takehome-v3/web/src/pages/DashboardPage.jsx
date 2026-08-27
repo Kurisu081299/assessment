@@ -5,6 +5,7 @@ import KpiCards from "../components/KpiCards.jsx";
 import DailyTable from "../components/DailyTable.jsx";
 import DailyChart from "../components/DailyChart.jsx";
 import IssuesStrip from "../components/IssuesStrip.jsx";
+import ComparisonStrip from "../components/ComparisonStrip.jsx";
 import NotFoundPage from "./NotFoundPage.jsx";
 
 export default function DashboardPage() {
@@ -38,7 +39,8 @@ export default function DashboardPage() {
   if (error) return <div className="page-center">Something went wrong: {error}</div>;
   if (!data) return <div className="page-center">Loading…</div>;
 
-  const { company, range, daily, totals, lastIngestAt, issues, excludedForeignSpend } = data;
+  const { company, range, daily, totals, lastIngestAt, issues, excludedForeignSpend, excludedForeignRevenue, comparison } =
+    data;
 
   return (
     <div className="dashboard">
@@ -55,6 +57,8 @@ export default function DashboardPage() {
 
       <KpiCards totals={totals} currency={company.currency} />
 
+      <ComparisonStrip comparison={comparison} currency={company.currency} />
+
       <section className="chart-section">
         <h2>Daily</h2>
         <DailyChart daily={daily} currency={company.currency} />
@@ -64,7 +68,12 @@ export default function DashboardPage() {
         <DailyTable daily={daily} currency={company.currency} />
       </section>
 
-      <IssuesStrip issues={issues} excludedForeignSpend={excludedForeignSpend} currency={company.currency} />
+      <IssuesStrip
+        issues={issues}
+        excludedForeignSpend={excludedForeignSpend}
+        excludedForeignRevenue={excludedForeignRevenue}
+        currency={company.currency}
+      />
 
       <footer className="dashboard-footer">
         Last successful ingest:{" "}

@@ -16,6 +16,13 @@ export const COMPANIES = {
     currency: "AUD",
     dashboardToken: "668f37f9758664de0943d2954ea73b123991b18ef441faf2",
   },
+  fina: {
+    slug: "fina",
+    name: "Fina Co",
+    timezone: "Asia/Manila",
+    currency: "PHP",
+    dashboardToken: "c2a67cb95295010773053ac849b8635f260e7774c8eabca3",
+  },
 };
 
 export const DEFAULT_RANGE = { start: "2026-08-01", end: "2026-08-14" };

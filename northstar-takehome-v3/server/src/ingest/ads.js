@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { decimalStringToCents } from "../money.js";
-import { toStoreLocalDate } from "../timezone.js";
+import { toStoreLocalDate, hasExplicitOffset } from "../timezone.js";
 
 // A byte-identical resend must be dropped; two genuinely different spend events for
 // the same campaign/day must both be summed (NOTES.md defect #4 -- the starter's
@@ -43,6 +43,18 @@ export function ingestAds(db, company, records) {
           sourceRecordId: rec.campaign_id ?? null,
           reason: "missing_date_start",
           detail: "ad row missing date_start",
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+        continue;
+      }
+
+      if (!hasExplicitOffset(rec.date_start)) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.campaign_id ?? null,
+          reason: "ambiguous_timestamp",
+          detail: `ad row date_start "${rec.date_start}" has no UTC offset or Z -- true instant is undeterminable, row not ingested`,
           detectedAt: ingestedAt,
         });
         stats.issues++;

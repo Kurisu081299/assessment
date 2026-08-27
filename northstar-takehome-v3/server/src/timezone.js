@@ -18,6 +18,17 @@ function formatterFor(timeZone) {
   return formatter;
 }
 
+// A timestamp with no `Z` and no numeric UTC offset (e.g. "2026-08-03T23:30:00")
+// has no fixed instant in time -- `new Date(...)` on such a string resolves it
+// against the *host machine's* local timezone (ECMA-262 date-time string parsing),
+// which is non-deterministic across environments and silently wrong the moment
+// the server isn't running in UTC. Fina's F-303 is the first record we've seen
+// this from (Lumen/Harbor's fixtures always carry an explicit offset). We refuse
+// to guess: callers treat this the same as a missing timestamp.
+export function hasExplicitOffset(isoTimestamp) {
+  return typeof isoTimestamp === "string" && /(Z|[+-]\d{2}:?\d{2})$/i.test(isoTimestamp.trim());
+}
+
 export function toStoreLocalDate(isoTimestamp, timeZone) {
   if (!isoTimestamp) return null;
   const date = new Date(isoTimestamp);

@@ -1,5 +1,5 @@
 import { decimalStringToCents } from "../money.js";
-import { toStoreLocalDate } from "../timezone.js";
+import { toStoreLocalDate, hasExplicitOffset } from "../timezone.js";
 
 // A record with `refund_of` set is a refund event, not a new order (NOTES.md
 // defect #1) -- it never touches the `orders` table. Two passes: real orders
@@ -7,6 +7,7 @@ import { toStoreLocalDate } from "../timezone.js";
 // file ordering.
 export function ingestOrders(db, company, records) {
   const stats = { ordersUpserted: 0, refundsUpserted: 0, issues: 0 };
+  const seenInBatch = new Map(); // source_order_id -> canonical JSON of the record already applied this batch
   const ingestedAt = new Date().toISOString();
 
   const upsertOrder = db.prepare(`
@@ -61,6 +62,37 @@ export function ingestOrders(db, company, records) {
         continue;
       }
 
+      if (!hasExplicitOffset(rec.created_at)) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.id ?? null,
+          reason: "ambiguous_timestamp",
+          detail: `order created_at "${rec.created_at}" has no UTC offset or Z -- true instant is undeterminable, order not ingested`,
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+        continue;
+      }
+
+      // Same source order id appearing twice in one batch with different content
+      // (Fina's F-306: first payload has 2 line items totalling 3900, second has 1
+      // totalling 1500) isn't a byte-identical resend -- we can't tell whether it's
+      // a genuine edit or corrupt data without an updated_at field. The upsert
+      // below applies last-write-wins (file order), same as any other re-ingest;
+      // we just make that visible instead of resolving it silently.
+      const canonical = JSON.stringify(rec);
+      if (seenInBatch.has(rec.id) && seenInBatch.get(rec.id) !== canonical) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.id,
+          reason: "conflicting_duplicate_in_batch",
+          detail: `order id "${rec.id}" appears more than once in this batch with different content; last occurrence in file order wins`,
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+      }
+      seenInBatch.set(rec.id, canonical);
+
       const storeLocalDate = toStoreLocalDate(rec.created_at, company.timezone);
       const { id: orderId } = upsertOrder.get({
         companyId: company.id,
@@ -79,6 +111,32 @@ export function ingestOrders(db, company, records) {
         insertLineItem.run(orderId, li.sku ?? null, li.title ?? null, li.quantity ?? 0, decimalStringToCents(li.price));
       }
       stats.ordersUpserted++;
+
+      // A voided order (payment authorization voided, nothing ever captured) is
+      // stored -- it's real, idempotent source data -- but is not a sale; kpi.js
+      // excludes financial_status='voided' from gross/net/order counts. Flagged
+      // here purely for visibility, same principle as a currency mismatch.
+      if (rec.financial_status === "voided") {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.id,
+          reason: "voided_order",
+          detail: `order ${rec.id} is voided -- excluded from gross sales/order count, not a sale`,
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+      }
+
+      if (rec.currency && rec.currency !== company.currency) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.id,
+          reason: "currency_mismatch",
+          detail: `order ${rec.id} currency ${rec.currency} does not match company currency ${company.currency}; excluded from gross/net revenue totals`,
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+      }
     }
 
     for (const rec of refundRecords) {
@@ -88,6 +146,18 @@ export function ingestOrders(db, company, records) {
           sourceRecordId: rec.id ?? null,
           reason: "missing_created_at",
           detail: "refund missing created_at",
+          detectedAt: ingestedAt,
+        });
+        stats.issues++;
+        continue;
+      }
+
+      if (!hasExplicitOffset(rec.created_at)) {
+        recordIssue.run({
+          companyId: company.id,
+          sourceRecordId: rec.id ?? null,
+          reason: "ambiguous_timestamp",
+          detail: `refund created_at "${rec.created_at}" has no UTC offset or Z -- true instant is undeterminable, refund not ingested`,
           detectedAt: ingestedAt,
         });
         stats.issues++;
