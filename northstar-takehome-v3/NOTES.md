@@ -935,16 +935,34 @@ in `readJsonl`.
 
 **3. Look at your transcripts. Where did the AI cost you the most time, and
 what would you do differently next time you drive it on a task like this?**
-See `AI-MOMENTS.md` for the specific instances with transcript line numbers.
-The pattern across them: the AI's first pass at a KPI query was almost always
-*plausible* — it ran, it returned numbers that looked like real numbers — and
-the actual time cost was mine, re-deriving the correct number by hand from the
-fixture before trusting or rejecting what it wrote. That's slower than it
-sounds the first time and fast every time after, because the fixtures are
-small enough to hand-verify. Next time: write the hand-verified expected
-number down *before* asking the AI to implement the query, not after, so
-"does this match" is a one-line diff instead of a fresh derivation under time
-pressure.
+See `AI-MOMENTS.md` for the full accounting — I checked every human-typed
+message across all three transcripts and found exactly one live correction,
+not five to eight, and said so rather than padding the count. That one moment
+(`session-03.txt`, ~lines 3171–3300) is where the AI cost the most time: asked
+to export the session, it stated confidently and specifically that it had "no
+tool that can generate or dump this session's own transcript from my side,"
+which sounded authoritative and was wrong — the export zip was already
+sitting in the directory from an earlier step. Three human turns went into
+getting past a wrong answer delivered with full confidence, when the actual
+fix was one `find` command. Next time: when the AI asserts a hard limitation
+about its own capabilities ("I can't do X"), have it check for the concrete
+evidence *before* accepting or arguing with the claim — a suspiciously
+specific-sounding "I have no tool for this" is exactly the kind of confident
+wrongness that's cheapest to catch by looking for the file, not by debating
+the AI's self-assessment.
+
+The broader shape of the driving style across Parts 0/A/B/C — one detailed
+task prompt, a plan approved as-is, then a long autonomous stretch — meant
+most actual verification happened *after* the fact, against `NOTES.md`'s
+hand-derived numbers and the test suite, rather than through live correction
+mid-task. That's a real tradeoff, not free: it's fast when the spec is
+well-understood (which Parts A–C were, since the Starter review had already
+mapped every defect), but it means an error in judgment during the
+autonomous stretch — as opposed to a factual error like the export one —
+would only surface once the whole pass was done and I sat down to check it,
+not mid-flight. Day 2's CR2 request-by-request review (this session) was
+driven more incrementally for exactly that reason: four independent product
+asks are a natural checkpoint size, not a save-it-all-for-the-end one.
 
 ## What we'd do differently in production
 
