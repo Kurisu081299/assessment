@@ -23,6 +23,12 @@ npm start
 starts the server on `http://localhost:4000`. It prints both dashboard URLs when it's
 ready. From a fresh clone this is under a minute (`npm install` is the only slow step).
 
+## Screenshot walkthrough
+
+[`screenshots/`](screenshots/) — all three dashboards plus a before/after of
+one live re-ingest run. See [`screenshots/README.md`](screenshots/README.md)
+for the annotated index.
+
 ## Dashboards
 
 | Company   | URL |
