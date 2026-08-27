@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchDashboard } from "../api.js";
+import { fetchDashboard, triggerReingest } from "../api.js";
 import KpiCards from "../components/KpiCards.jsx";
 import DailyTable from "../components/DailyTable.jsx";
 import DailyChart from "../components/DailyChart.jsx";
@@ -14,10 +14,13 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(null);
+  // Stretch: trigger a re-ingest without restarting the server, then refetch
+  // this dashboard so the new numbers show up without a page reload.
+  const [reingesting, setReingesting] = useState(false);
+  const [reingestNote, setReingestNote] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let cancelled = false;
-    setData(null);
     setNotFound(false);
     setError(null);
 
@@ -35,6 +38,27 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    setData(null);
+    return load();
+  }, [load]);
+
+  const handleReingest = async () => {
+    setReingesting(true);
+    setReingestNote(null);
+    try {
+      const result = await triggerReingest();
+      setReingestNote(`Re-ingest ${result.status} in ${result.wallMs.toFixed(0)}ms.`);
+      load();
+    } catch (err) {
+      setReingestNote(
+        err.status === 409 ? "Another ingest is already in progress." : `Re-ingest failed: ${err.message}`
+      );
+    } finally {
+      setReingesting(false);
+    }
+  };
 
   if (notFound) return <NotFoundPage />;
   if (error) return <div className="page-center">Something went wrong: {error}</div>;
@@ -77,8 +101,14 @@ export default function DashboardPage() {
         currency={company.currency}
       />
 
-      <footer className="dashboard-footer" title={lastIngestAt ? `${lastIngestAt} UTC` : undefined}>
-        Last successful ingest: {localIngestAt ?? "never"}
+      <footer className="dashboard-footer">
+        <span title={lastIngestAt ? `${lastIngestAt} UTC` : undefined}>
+          Last successful ingest: {localIngestAt ?? "never"}
+        </span>
+        <button className="reingest-button" onClick={handleReingest} disabled={reingesting}>
+          {reingesting ? "Re-ingesting…" : "Re-ingest now"}
+        </button>
+        {reingestNote && <span className="reingest-note">{reingestNote}</span>}
       </footer>
     </div>
   );

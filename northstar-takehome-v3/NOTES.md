@@ -973,3 +973,47 @@ pressure.
   soon-you'll-need-it-again if a new KPI is added) as a repeated `WHERE`
   clause fragment rather than a shared view/CTE. Fine at this scale; the
   third or fourth caller is where I'd factor it out.
+
+---
+
+## Stretch — `POST` re-ingest without a restart
+
+Picked this over incremental `sync_state` or a source-health strip because it
+directly serves the brief's own required deliverable: the walkthrough video
+needs "one re-ingest run," and a button that re-ingests the live server
+without a restart is a better demo of "this actually works end to end" than
+a terminal screen recording of `npm run ingest`.
+
+[`server/src/server.js`](server/src/server.js#L21) adds
+`POST /api/ingest`, which calls the exact same `ingestAll(db)` the CLI
+(`ingest/run.js`) uses -- same idempotent upserts, same transaction
+boundaries per company/source, same kill-safety guarantees from Part C --
+just against the server process's own already-open, long-lived DB
+connection instead of a fresh one. No caching layer needed invalidating:
+`getDashboardData` already recomputes straight from SQLite on every request
+([kpi.js:118](server/src/kpi.js#L118)), so a re-ingest's effects are visible
+on the very next dashboard fetch. Every dashboard also has a **"Re-ingest
+now"** button ([DashboardPage.jsx](web/src/pages/DashboardPage.jsx)) that
+calls the endpoint and refetches itself.
+
+Two things worth calling out:
+
+- **Concurrency.** This is a single-process app with one shared DB
+  connection -- two `ingestAll()` calls running at once would interleave
+  transactions against the same connection, which `better-sqlite3`'s
+  synchronous API doesn't protect against on its own. A plain in-memory
+  `ingesting` boolean set for the duration of the call
+  ([server.js:22](server/src/server.js#L22)) is enough for a single-process
+  app; a second `POST` while one is in flight gets `409` instead of racing
+  it. This would need a real lock (e.g. `BEGIN IMMEDIATE` or an external
+  mutex) the moment this ran as more than one process.
+- **What I didn't test.** The 409 path is exercised in
+  [reingest_endpoint.test.js](server/test/reingest_endpoint.test.js), but
+  against the tiny hand-authored fixtures ingest finishes in ~20-40ms, so two
+  concurrent `POST`s racing to actually collide on the lock (vs. both
+  finishing before either checks the other) is inherently timing-dependent
+  -- the test asserts the response pair is always `(200,200)` or `(200,409)`
+  and never anything else, rather than forcing the race to land a specific
+  way. Proving the lock actually *fires* deterministically would need an
+  injectable delay inside `ingestAll` (e.g. a hook only enabled under test),
+  which felt like more surface area than a stretch item warranted.

@@ -274,4 +274,28 @@ body {
   margin-top: 2rem;
   color: var(--muted);
   font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.reingest-button {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.reingest-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.reingest-note {
+  color: var(--muted);
 }

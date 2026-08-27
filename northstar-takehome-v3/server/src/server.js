@@ -5,18 +5,45 @@ import { existsSync } from "node:fs";
 import { openDb } from "./db.js";
 import { getCompanyByToken, getDashboardData } from "./kpi.js";
 import { COMPANIES, DEFAULT_RANGE, lastNDaysRange } from "./companies.js";
+import { ingestAll } from "./ingest/run.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = join(__dirname, "..", "..", "web", "dist");
 
 export function createApp(db) {
   const app = express();
+  // Stretch: re-ingest without restarting the process. A plain in-memory flag
+  // is enough here -- this is a single-process app with one long-lived DB
+  // connection, so the only real risk is two ingestAll() calls racing each
+  // other's transactions, not a distributed-lock problem.
+  let ingesting = false;
 
   if (existsSync(WEB_DIST)) {
     // index: false -- "/" must hit our own handler below, not auto-serve the SPA
     // shell (which is only valid under a checked /d/:token route).
     app.use(express.static(WEB_DIST, { index: false }));
   }
+
+  // Re-ingests from whichever source NORTHSTAR_SOURCE/NORTHSTAR_FIXTURES
+  // currently point at, against the running server's own DB connection --
+  // same ingestAll() the CLI (ingest/run.js) uses, no process restart. A
+  // second call while one is in flight gets a 409 instead of racing it.
+  app.post("/api/ingest", async (_req, res) => {
+    if (ingesting) {
+      return res.status(409).json({ error: "ingest_in_progress" });
+    }
+    ingesting = true;
+    const t0 = process.hrtime.bigint();
+    try {
+      const result = await ingestAll(db);
+      const wallMs = Number(process.hrtime.bigint() - t0) / 1e6;
+      res.json({ ...result, wallMs });
+    } catch (err) {
+      res.status(500).json({ error: "ingest_failed", message: String(err) });
+    } finally {
+      ingesting = false;
+    }
+  });
 
   // Wrong or unknown token -> a real 404, not a redirect and not the SPA shell.
   app.get("/api/dashboard/:token", (req, res) => {

@@ -77,21 +77,37 @@ npm run prove:kill-safety           # SIGKILLs ingest mid-run, proves no
 see `NOTES.md` → "Part C — Failures" for the per-failure-mode handling and
 the kill-safety proof.
 
+## Stretch — re-ingest without a restart
+
+Every dashboard has a **"Re-ingest now"** button in the footer. It calls
+`POST /api/ingest` on the already-running server, which re-runs the exact
+same pipeline the CLI uses against that server's own live DB connection —
+no restart, no downtime. The dashboard refetches itself afterward so updated
+numbers show up immediately.
+
+```bash
+curl -X POST http://localhost:4000/api/ingest
+```
+
+A second `POST` while one is already running gets `409 {"error":
+"ingest_in_progress"}` instead of racing the first one's transactions.
+
 ## Tests
 
 ```bash
 npm test
 ```
 
-31 tests, asserting numbers (not "a function was called") for duplicate order rows,
+33 tests, asserting numbers (not "a function was called") for duplicate order rows,
 UTC-timestamp timezone conversion in both directions, refund netting and refund-date
 attribution, a spend-with-zero-orders day, inclusive date-range boundaries,
 wrong-currency ad and order exclusion, voided-order exclusion, offset-less/ambiguous
 timestamps, a same-batch order-id conflict, a negative-spend platform credit, the
 week-over-week comparison (including its "no data" and zero-baseline cases),
-idempotent re-ingest, and — against the real `tools/flaky_source.py`, not a mock —
-ingest reproducing Part A's exact totals while actually triggering every injected
-failure mode.
+the `POST /api/ingest` re-ingest endpoint (including the concurrent-request
+guard), idempotent re-ingest, and — against the real `tools/flaky_source.py`,
+not a mock — ingest reproducing Part A's exact totals while actually
+triggering every injected failure mode.
 
 ## KPI definitions (in my own words)
 
